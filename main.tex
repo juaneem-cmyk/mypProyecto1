@@ -1,0 +1,160 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,mexico]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{enumitem}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Proyecto de Chat TCP}
+\fancyhead[R]{Facultad de Ciencias, UNAM}
+\fancyfoot[C]{\thepage}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+\title{Proyecto 1: Chat TCP}
+\author{Espinosa Meléndez Juan Ernesto}
+\date{\today}
+
+\begin{document}
+\thispagestyle{empty}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=4cm]{unam-logo-png_seeklogo-144764.png}
+    \hspace{2cm}
+    \includegraphics[width=4cm]{FC1.png}
+\end{figure}
+
+\vspace{1cm}
+
+\begin{center}
+
+    {\Large \textbf{UNIVERSIDAD NACIONAL AUTÓNOMA DE MÉXICO}}\\[0.5cm]
+
+    {\Large \textbf{FACULTAD DE CIENCIAS}}\\[1.5cm]
+
+    {\LARGE \textbf{Proyecto 1}}\\[0.5cm]
+
+    {\Large \textbf{Chat TCP}}\\[1.5cm]
+
+    \textbf{Alumno:}\\
+    Espinosa Meléndez Juan Ernesto\\
+    No. de cuenta: 323150066\\[1cm]
+
+    \textbf{Asignatura:}\\
+    [Modelado y Programación]\\[0.8cm]
+
+    \textbf{Profesor:}\\
+    [Canék Peláez Valdés]\\[1cm]
+
+\end{center}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Introducción}
+
+\section{Descripción general del sistema}
+
+\subsection{Arquitectura cliente/servidor}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{diagram.png}
+    \label{fig:arquitectura}
+\end{figure}
+
+\section{Protocolo de comunicación}
+
+\subsection{Formato de los mensajes}
+
+\subsection{Operaciones del protocolo}
+
+\begin{itemize}
+    \item IDENTIFY
+    \item STATUS
+    \item USERS
+    \item TEXT
+    \item PUBLIC\_TEXT
+    \item NEW\_ROOM
+    \item INVITE
+    \item JOIN\_ROOM
+    \item ROOM\_USERS
+    \item ROOM\_TEXT
+    \item LEAVE\_ROOM
+    \item DISCONNECT
+\end{itemize}
+
+\section{Implementación del servidor}
+
+\subsection{Creación del socket}
+
+\subsection{Manejo de múltiples clientes}
+
+\subsection{Estructura del cliente}
+
+\subsection{Gestión de usuarios}
+
+\subsection{Gestión de salas}
+
+\subsection{Manejo de mensajes}
+
+\section{Implementación del cliente}
+
+\subsection{Programa principal}
+
+\subsection{Controlador}
+
+\subsection{Comunicación TCP}
+
+\subsection{Recepción de mensajes}
+
+\section{Refactorización y patrones de diseño}
+
+\subsection{Factory}
+
+\subsection{Command}
+
+\section{Diagramas UML}
+
+\subsection{Diagrama de componentes}
+
+\subsection{Diagrama de clases}
+
+\subsection{Diagrama de secuencia}
+
+\section{Problemas encontrados y soluciones}
+
+\subsection{Problema 1}
+
+\subsubsection{Solución}
+
+\subsection{Problema 2}
+
+\subsubsection{Solución}
+
+\section{Conclusiones}
+
+\section{Referencias}
+
+\appendix
+
+\end{document}
