@@ -7,7 +7,10 @@
 #include <arpa/inet.h>
 
 /*Voy a seguir un tutorial.
- https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 */
+ https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
+ Como el tutorial limita los clientes, busque otro tutorial que me sirva de guia
+ https://medium.com/@shivambhadani_/understanding-tcp-and-building-our-own-tcp-server-in-c-language-8de9d9de78ef
+ */
 
 #define PUERTO 1234
 #define BUFFER_SIZE 1024
@@ -42,5 +45,14 @@ int main() {
         exit(EXIT_FAILURE);
     }
     printf("Servidor escuchando en el puerto %d\n", PUERTO);
+    // Acepto conexiones entrantes en un bucle infinito
+    while (1) {
+        nuevo_socket = accept(servidor_socket, NULL, NULL);
+        if (nuevo_socket < 0) {
+            perror("Error al aceptar la conexión");
+            continue;
+        }
+        printf("Cliente conectado\n");
+    }
     return 0;
 }
