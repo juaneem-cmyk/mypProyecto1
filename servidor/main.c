@@ -11,3 +11,11 @@
 
 #define PUERTO 1234
 #define BUFFER_SIZE 1024
+
+int main() {
+    int servidor_socket, nuevo_socket;
+    struct sockaddr_in direccion;
+    int opcion=1;
+    char buffer[BUFFER_SIZE]= {0};
+    return 0;
+}
