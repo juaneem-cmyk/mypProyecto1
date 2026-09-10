@@ -16,11 +16,17 @@
 #define PUERTO 1234
 #define BUFFER_SIZE 1024
 
+struct cliente {
+    int socket;
+    int usados;
+    char buffer[BUFFER_SIZE];
+};
+
 int main() {
     int servidor_socket, nuevo_socket;
     struct sockaddr_in direccion;
     int opcion=1;
-    char buffer[BUFFER_SIZE]= {0};
+    
     // Creo el socket del servidor
     if ((servidor_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1){
         perror("Error al crear el socket");
@@ -52,14 +58,25 @@ int main() {
     int capacidad = 1;
     int cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
+    struct cliente *clientes = malloc(sizeof(struct cliente) * capacidad);
+    // Inicializo los clientes
+    if (clientes == NULL) {
+        perror("Error al reservar memoria para clientes");
+        free(fds);
+        close(servidor_socket);
+        exit(EXIT_FAILURE);
+    }
     if (fds == NULL) {
         perror("Error al reservar memoria");
         close(servidor_socket);
         exit(EXIT_FAILURE);
     }
-    fds[0].fd = servidor_socket;
-    fds[0].events = POLLIN;
-    fds[0].revents = 0;
+    fds[cantidad].fd = nuevo_socket;
+    fds[cantidad].events = POLLIN;
+    fds[cantidad].revents = 0;
+    clientes[cantidad].socket = nuevo_socket;
+    clientes[cantidad].usados = 0;
+    cantidad++;
     // Acepto conexiones entrantes en un bucle infinito
     while (1) {
         int actividad = poll(fds, cantidad, -1);
@@ -84,6 +101,13 @@ int main() {
                     continue;
                 }
                 fds = temporal;
+                struct cliente *temporal_clientes = realloc(clientes, sizeof(struct cliente) * capacidad);
+                if (temporal_clientes == NULL) {
+                    perror("Error al ampliar la memoria para clientes");
+                    close(nuevo_socket);
+                    continue;
+                }
+                clientes = temporal_clientes;
             }
             fds[cantidad].fd = nuevo_socket;
             fds[cantidad].events = POLLIN;
