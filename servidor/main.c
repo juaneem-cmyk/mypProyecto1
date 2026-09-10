@@ -46,8 +46,9 @@ int main() {
         exit(EXIT_FAILURE);
     }
     printf("Servidor escuchando en el puerto %d\n", PUERTO);
-
-    // Configuro el polling para manejar múltiples clientes
+    
+    /* Configuro el polling para manejar múltiples clientes 
+    https://www.ibm.com/docs/en/i/7.4.0?topic=designs-using-poll-instead-select */
     int capacidad = 1;
     int cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
@@ -61,12 +62,34 @@ int main() {
     fds[0].revents = 0;
     // Acepto conexiones entrantes en un bucle infinito
     while (1) {
-        nuevo_socket = accept(servidor_socket, NULL, NULL);
-        if (nuevo_socket < 0) {
-            perror("Error al aceptar la conexión");
+        int actividad = poll(fds, cantidad, -1);
+        if (actividad < 0) {
+            perror("Error en poll");
             continue;
         }
-        printf("Cliente conectado\n");
+        if (fds[0].revents & POLLIN) {
+            nuevo_socket = accept(servidor_socket, NULL, NULL);
+            if (nuevo_socket < 0) {
+                perror("Error al aceptar la conexión");
+                continue;
+            }
+            printf("Cliente conectado\n");
+
+            if (cantidad == capacidad) {
+                capacidad *= 2;
+                struct pollfd *temporal = realloc(fds, sizeof(struct pollfd) * capacidad);
+                if (temporal == NULL) {
+                    perror("Error al ampliar la memoria");
+                    close(nuevo_socket);
+                    continue;
+                }
+                fds = temporal;
+            }
+            fds[cantidad].fd = nuevo_socket;
+            fds[cantidad].events = POLLIN;
+            fds[cantidad].revents = 0;
+            cantidad++;
+        }
     }
     return 0;
 }
