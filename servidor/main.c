@@ -101,9 +101,25 @@ int main() {
                 if (bytes_leidos == 0) {
                     printf("Cliente desconectado\n");
                     close(fds[i].fd);
+                    // Remuevo el cliente desconectado del arreglo de fds
+                    for (int j = i; j < cantidad - 1; j++) {
+                        fds[j] = fds[j + 1];
+                    }
+                    cantidad--;
+                    i--;
                 } else {
                     buffer[bytes_leidos] = '\0';
                     printf("Mensaje recibido: %s\n", buffer);
+                    for (int j = 1; j < cantidad; j++) {
+                        if (j != i) { // No enviar el mensaje al cliente que lo envió
+                            if (send(fds[j].fd, buffer, bytes_leidos, 0) < 0) {
+                                perror("Error al enviar respuesta al cliente");
+                            }
+                        }
+                    }
+                if (send(fds[i].fd, buffer, bytes_leidos, 0) < 0) {
+                    perror("Error al enviar respuesta al cliente");
+                }  
                 }
             }
         }
