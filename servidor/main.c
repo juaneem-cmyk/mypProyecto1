@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <poll.h>
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
@@ -45,6 +46,19 @@ int main() {
         exit(EXIT_FAILURE);
     }
     printf("Servidor escuchando en el puerto %d\n", PUERTO);
+
+    // Configuro el polling para manejar múltiples clientes
+    int capacidad = 1;
+    int cantidad = 1;
+    struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
+    if (fds == NULL) {
+        perror("Error al reservar memoria");
+        close(servidor_socket);
+        exit(EXIT_FAILURE);
+    }
+    fds[0].fd = servidor_socket;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
     // Acepto conexiones entrantes en un bucle infinito
     while (1) {
         nuevo_socket = accept(servidor_socket, NULL, NULL);
