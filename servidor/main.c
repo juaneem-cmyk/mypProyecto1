@@ -90,6 +90,23 @@ int main() {
             fds[cantidad].revents = 0;
             cantidad++;
         }
+        // Manejo la comunicación con los clientes conectados
+        for (int i = 1; i < cantidad; i++) {
+            if (fds[i].revents & POLLIN) {
+                int bytes_leidos = read(fds[i].fd, buffer, BUFFER_SIZE - 1);
+                if (bytes_leidos < 0) {
+                    perror("Error al leer del cliente");
+                    continue;
+                } 
+                if (bytes_leidos == 0) {
+                    printf("Cliente desconectado\n");
+                    close(fds[i].fd);
+                } else {
+                    buffer[bytes_leidos] = '\0';
+                    printf("Mensaje recibido: %s\n", buffer);
+                }
+            }
+        }
     }
     return 0;
 }
