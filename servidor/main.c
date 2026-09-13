@@ -68,15 +68,14 @@ int main() {
     }
     if (fds == NULL) {
         perror("Error al reservar memoria");
+        free(clientes);
         close(servidor_socket);
         exit(EXIT_FAILURE);
     }
-    fds[cantidad].fd = nuevo_socket;
-    fds[cantidad].events = POLLIN;
-    fds[cantidad].revents = 0;
-    clientes[cantidad].socket = nuevo_socket;
-    clientes[cantidad].usados = 0;
-    cantidad++;
+    fds[0].fd = servidor_socket;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
+    
     // Acepto conexiones entrantes en un bucle infinito
     while (1) {
         int actividad = poll(fds, cantidad, -1);
@@ -84,6 +83,7 @@ int main() {
             perror("Error en poll");
             continue;
         }
+        // Si hay actividad en el socket del servidor, acepto la conexión entrante
         if (fds[0].revents & POLLIN) {
             nuevo_socket = accept(servidor_socket, NULL, NULL);
             if (nuevo_socket < 0) {
@@ -91,7 +91,7 @@ int main() {
                 continue;
             }
             printf("Cliente conectado\n");
-
+            // Si la cantidad de clientes alcanza la capacidad, duplico la capacidad
             if (cantidad == capacidad) {
                 capacidad *= 2;
                 struct pollfd *temporal = realloc(fds, sizeof(struct pollfd) * capacidad);
@@ -102,6 +102,7 @@ int main() {
                 }
                 fds = temporal;
                 struct cliente *temporal_clientes = realloc(clientes, sizeof(struct cliente) * capacidad);
+                // Verifico si la memoria se amplió correctamente
                 if (temporal_clientes == NULL) {
                     perror("Error al ampliar la memoria para clientes");
                     close(nuevo_socket);
@@ -112,12 +113,14 @@ int main() {
             fds[cantidad].fd = nuevo_socket;
             fds[cantidad].events = POLLIN;
             fds[cantidad].revents = 0;
+            clientes[cantidad].socket = nuevo_socket;
+            clientes[cantidad].usados = 0;
             cantidad++;
         }
         // Manejo la comunicación con los clientes conectados
         for (int i = 1; i < cantidad; i++) {
             if (fds[i].revents & POLLIN) {
-                int bytes_leidos = read(fds[i].fd, buffer, BUFFER_SIZE - 1);
+                int bytes_leidos = read(fds[i].fd, clientes[i].buffer + clientes[i].usados, BUFFER_SIZE - clientes[i].usados - 1);
                 if (bytes_leidos < 0) {
                     perror("Error al leer del cliente");
                     continue;
@@ -128,22 +131,21 @@ int main() {
                     // Remuevo el cliente desconectado del arreglo de fds
                     for (int j = i; j < cantidad - 1; j++) {
                         fds[j] = fds[j + 1];
+                        clientes[j] = clientes[j + 1];
                     }
                     cantidad--;
                     i--;
                 } else {
-                    buffer[bytes_leidos] = '\0';
-                    printf("Mensaje recibido: %s\n", buffer);
+                    clientes[i].usados += bytes_leidos;
+                    clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                    printf("Mensaje recibido: %s\n", clientes[i].buffer);
                     for (int j = 1; j < cantidad; j++) {
                         if (j != i) { // No enviar el mensaje al cliente que lo envió
-                            if (send(fds[j].fd, buffer, bytes_leidos, 0) < 0) {
+                            if (send(fds[j].fd, clientes[i].buffer, clientes[i].usados, 0) < 0) {
                                 perror("Error al enviar respuesta al cliente");
                             }
                         }
                     }
-                if (send(fds[i].fd, buffer, bytes_leidos, 0) < 0) {
-                    perror("Error al enviar respuesta al cliente");
-                }  
                 }
             }
         }
