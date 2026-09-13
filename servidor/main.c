@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <signal.h>
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
@@ -15,6 +16,12 @@
 
 #define PUERTO 1234
 #define BUFFER_SIZE 1024
+
+// Cerrar adecuadamente el servidor, recomendación de Canek
+volatile sig_atomic_t servidor_activo = 1;
+void manejar_señal(int señal) {
+    servidor_activo = 0;
+}
 
 struct cliente {
     int socket;
@@ -26,6 +33,7 @@ int main() {
     int servidor_socket, nuevo_socket;
     struct sockaddr_in direccion;
     int opcion=1;
+    signal(SIGINT, manejar_señal); // Manejo de la señal SIGINT para cerrar el servidor adecuadamente
     
     // Creo el socket del servidor
     if ((servidor_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1){
@@ -77,10 +85,14 @@ int main() {
     fds[0].revents = 0;
     
     // Acepto conexiones entrantes en un bucle infinito
-    while (1) {
-        int actividad = poll(fds, cantidad, -1);
+    while (servidor_activo) {
+        int actividad = poll(fds, cantidad, 1000); // Espera hasta 1 segundo para actividad
         if (actividad < 0) {
             perror("Error en poll");
+            break;
+        }
+        if (actividad == 0) {
+            // No hay actividad, continúo esperando
             continue;
         }
         // Si hay actividad en el socket del servidor, acepto la conexión entrante
@@ -138,17 +150,28 @@ int main() {
                 } else {
                     clientes[i].usados += bytes_leidos;
                     clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
-                    printf("Mensaje recibido: %s\n", clientes[i].buffer);
-                    for (int j = 1; j < cantidad; j++) {
-                        if (j != i) { // No enviar el mensaje al cliente que lo envió
-                            if (send(fds[j].fd, clientes[i].buffer, clientes[i].usados, 0) < 0) {
-                                perror("Error al enviar respuesta al cliente");
-                            }
-                        }
+                    char *fin_mensaje;
+                    // Procesar todos los mensajes completos en el buffer del cliente
+                    while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
+                        int longitud_mensaje = fin_mensaje - clientes[i].buffer;
+                        printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
+
+                        int restante = clientes[i].usados - (longitud_mensaje + 1);
+                        memmove(clientes[i].buffer, fin_mensaje + 1, restante);
+                        clientes[i].usados = restante;
+                        clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
                     }
                 }
             }
         }
     }
+    // Cierro todos los sockets y libero la memoria
+        for (int i = 1; i < cantidad; i++) {
+            close(fds[i].fd);
+        }
+        close (servidor_socket);
+        free(fds);
+        free(clientes);
+        printf("Servidor cerrado\n");
     return 0;
 }
