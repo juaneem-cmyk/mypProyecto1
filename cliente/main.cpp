@@ -6,11 +6,13 @@
   tiene unas hormigas en la portada :D*/
 
 int main() {
-    TCPCliente cliente("127.0.0.1", 1234);
+  TCPCliente cliente("127.0.0.1", 1234);
+  if (!cliente.conectar()) {
+    return 1;
+  }
+  std::cout << "Cliente conectado al servidor." << std::endl;
+  std::cin.get();
+  std::cin.get();
 
-    if (!cliente.conectar()) {
-      return 1;
-    }
-    std::cout << "Cliente conectado al servidor." << std::endl;
-    return 0;
+  return 0;
 }

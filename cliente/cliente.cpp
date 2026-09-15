@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <thread>
 #include "TCPCliente.h"
 
 /* Encontré 2 repositorios de referencia y un libro que habla de un proyecto multiusuario de chat 
@@ -11,11 +12,17 @@ https://github.com/AmineToualbi/TCPChat.git
 https://github.com/BaseMax/TCP-Chat-CPP.git
 */
 // Constructor de la clase TCPCliente
-TCPCliente::TCPCliente(const std::string ip, int puerto) : socket_cliente(-1), ip(ip), puerto(puerto) {
+TCPCliente::TCPCliente(const std::string& ip, int puerto) : socket_cliente(-1), ip(ip), puerto(puerto), activo(false) {
 }
+// Destructor de la clase TCPCliente
 TCPCliente::~TCPCliente() {
+    activo = false;
     if (socket_cliente != -1) {
+        shutdown(socket_cliente, SHUT_RDWR);
         close(socket_cliente);
+    }
+    if (hilo_lectura.joinable()) {
+        hilo_lectura.join();
     }
 }
 // Método para conectar al servidor
@@ -45,5 +52,25 @@ bool TCPCliente::conectar() {
         return false;
     }
     std::cout << "Conexión establecida con el servidor " << ip << ":" << puerto << std::endl;
+    activo = true;
+    hilo_lectura = std::thread(&TCPCliente::leer_mensajes, this);
     return true;
+}
+// Método para leer mensajes del servidor
+void TCPCliente::leer_mensajes() {
+    char buffer[1024];
+    while (activo) {
+        int bytes_recibidos = recv(socket_cliente, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytes_recibidos > 0){
+            buffer[bytes_recibidos] = '\0';
+            std::cout << "Mensaje recibido: " << buffer << std::endl;
+        } else if (bytes_recibidos == 0) {
+            std::cout << "El servidor ha cerrado la conexión." << std::endl;
+            activo = false;
+        } else {
+            perror("Error al recibir datos");
+            activo = false;
+        }
+    }
 }
