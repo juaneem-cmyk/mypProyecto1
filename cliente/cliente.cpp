@@ -31,6 +31,13 @@ bool TCPCliente::conectar() {
     direccion_servidor.sin_family = AF_INET;
     direccion_servidor.sin_port = htons(puerto);
 
+    if (inet_pton(AF_INET, ip.c_str(), &direccion_servidor.sin_addr) <= 0) {
+        perror("Error al convertir la dirección IP");
+        close(socket_cliente);
+        socket_cliente = -1;
+        return false;
+    }
+
     if (connect(socket_cliente, reinterpret_cast<sockaddr*>(&direccion_servidor), sizeof(direccion_servidor)) == -1) {
         perror("Error al conectar con el servidor");
         close(socket_cliente);

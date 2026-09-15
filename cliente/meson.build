@@ -1,0 +1,1 @@
+executable('cliente', 'cliente.cpp', 'main.cpp')
