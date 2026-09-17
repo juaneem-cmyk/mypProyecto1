@@ -23,6 +23,11 @@ void manejar_señal(int señal) {
     servidor_activo = 0;
 }
 
+// Enviar respuesta a los clientes conectados
+void enviar_mensaje (int socket, const char *mensaje) {
+    send(socket, mensaje, strlen(mensaje), 0);
+}
+
 struct cliente {
     int socket;
     int usados;
@@ -67,6 +72,7 @@ int main() {
     int cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
     struct cliente *clientes = malloc(sizeof(struct cliente) * capacidad);
+    
     // Inicializo los clientes
     if (clientes == NULL) {
         perror("Error al reservar memoria para clientes");
@@ -95,6 +101,7 @@ int main() {
             // No hay actividad, continúo esperando
             continue;
         }
+        
         // Si hay actividad en el socket del servidor, acepto la conexión entrante
         if (fds[0].revents & POLLIN) {
             nuevo_socket = accept(servidor_socket, NULL, NULL);
@@ -103,6 +110,7 @@ int main() {
                 continue;
             }
             printf("Cliente conectado\n");
+            
             // Si la cantidad de clientes alcanza la capacidad, duplico la capacidad
             if (cantidad == capacidad) {
                 capacidad *= 2;
@@ -114,6 +122,7 @@ int main() {
                 }
                 fds = temporal;
                 struct cliente *temporal_clientes = realloc(clientes, sizeof(struct cliente) * capacidad);
+                
                 // Verifico si la memoria se amplió correctamente
                 if (temporal_clientes == NULL) {
                     perror("Error al ampliar la memoria para clientes");
@@ -129,6 +138,7 @@ int main() {
             clientes[cantidad].usados = 0;
             cantidad++;
         }
+        
         // Manejo la comunicación con los clientes conectados
         for (int i = 1; i < cantidad; i++) {
             if (fds[i].revents & POLLIN) {
@@ -140,6 +150,7 @@ int main() {
                 if (bytes_leidos == 0) {
                     printf("Cliente desconectado\n");
                     close(fds[i].fd);
+                    
                     // Remuevo el cliente desconectado del arreglo de fds
                     for (int j = i; j < cantidad - 1; j++) {
                         fds[j] = fds[j + 1];
@@ -151,10 +162,19 @@ int main() {
                     clientes[i].usados += bytes_leidos;
                     clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
                     char *fin_mensaje;
+                    
                     // Procesar todos los mensajes completos en el buffer del cliente
                     while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
                         int longitud_mensaje = fin_mensaje - clientes[i].buffer;
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
+
+                        if (strncmp(clientes[i].buffer, "{\"type\":\"IDENTIFY\"", strlen("{\"type\":\"IDENTIFY\"}")) == 0) {
+                            // Procesar mensaje de identificación
+                            printf("Cliente identificado: %.*s\n", longitud_mensaje, clientes[i].buffer);
+                        } else {
+                            // Procesar otros mensajes
+                            printf("Mensaje del cliente: %.*s\n", longitud_mensaje, clientes[i].buffer);
+                        }
 
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
                         memmove(clientes[i].buffer, fin_mensaje + 1, restante);
