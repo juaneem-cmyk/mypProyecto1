@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <signal.h>
+#include "protocolo.h"
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
@@ -176,13 +177,13 @@ int main() {
                         // Verifico si el mensaje es de identificación
                         if (strncmp(clientes[i].buffer, "{\"type\":\"IDENTIFY\"", strlen("{\"type\":\"IDENTIFY\"}")) == 0) {
                             char nombre_usuario[9];
-                            if (sscanf(clientes[i].buffer, "{\"type\":\"IDENTIFY\",\"username\":\"%8[^\"]\"}", nombre_usuario) == 1) {
-                                strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
-                                clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
-                                clientes[i].identificado = 1; // Marcar al cliente como identificado
+                            if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
+                                strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario));
+                                clientes[i].identificado = 1;
                                 printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+                                enviar_mensaje(clientes[i].socket, "Identificación exitosa\n");
                             } else {
-                                printf("Error al procesar el mensaje de identificación del cliente\n");
+                                printf("Mensaje del cliente: %.*s\n", longitud_mensaje, clientes[i].buffer);
                             }
                         }
 
