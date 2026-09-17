@@ -32,6 +32,8 @@ struct cliente {
     int socket;
     int usados;
     char buffer[BUFFER_SIZE];
+    char nombre_usuario[9];
+    int identificado;
 };
 
 int main() {
@@ -131,12 +133,15 @@ int main() {
                 }
                 clientes = temporal_clientes;
             }
-            fds[cantidad].fd = nuevo_socket;
-            fds[cantidad].events = POLLIN;
-            fds[cantidad].revents = 0;
-            clientes[cantidad].socket = nuevo_socket;
-            clientes[cantidad].usados = 0;
-            cantidad++;
+
+            fds[cantidad].fd = nuevo_socket; // Agrego el nuevo socket al arreglo de fds
+            fds[cantidad].events = POLLIN; // Configuro el evento de lectura para el nuevo socket
+            fds[cantidad].revents = 0; // Inicializo los eventos de revents en 0
+            clientes[cantidad].socket = nuevo_socket; // Inicializo el socket del cliente
+            clientes[cantidad].usados = 0; // Inicializo la cantidad de bytes usados en el buffer del cliente
+            clientes[cantidad].nombre_usuario[0] = '\0'; // Inicializo el nombre de usuario del cliente
+            clientes[cantidad].identificado = 0; // Inicializo el estado de identificación del cliente
+            cantidad++; // Incremento la cantidad de clientes conectados
         }
         
         // Manejo la comunicación con los clientes conectados
@@ -168,12 +173,17 @@ int main() {
                         int longitud_mensaje = fin_mensaje - clientes[i].buffer;
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
 
+                        // Verifico si el mensaje es de identificación
                         if (strncmp(clientes[i].buffer, "{\"type\":\"IDENTIFY\"", strlen("{\"type\":\"IDENTIFY\"}")) == 0) {
-                            // Procesar mensaje de identificación
-                            printf("Cliente identificado: %.*s\n", longitud_mensaje, clientes[i].buffer);
-                        } else {
-                            // Procesar otros mensajes
-                            printf("Mensaje del cliente: %.*s\n", longitud_mensaje, clientes[i].buffer);
+                            char nombre_usuario[9];
+                            if (sscanf(clientes[i].buffer, "{\"type\":\"IDENTIFY\",\"username\":\"%8[^\"]\"}", nombre_usuario) == 1) {
+                                strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
+                                clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
+                                clientes[i].identificado = 1; // Marcar al cliente como identificado
+                                printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+                            } else {
+                                printf("Error al procesar el mensaje de identificación del cliente\n");
+                            }
                         }
 
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
