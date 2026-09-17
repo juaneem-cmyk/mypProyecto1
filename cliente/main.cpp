@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include "TCPCliente.h"
 
 /*Esto lo iba a colocar en el reporte pero supongo que aquí también es importante,
@@ -10,9 +11,22 @@ int main() {
   if (!cliente.conectar()) {
     return 1;
   }
-  std::cout << "Cliente conectado al servidor." << std::endl;
-  std::cin.get();
-  std::cin.get();
+
+  // Enviar un mensaje de identificación al servidor
+  printf("Cliente conectado al servidor.\n");
+  std::string usuario;
+  printf("Ingrese su nombre de usuario: ");
+  std::getline(std::cin, usuario);
+  std::string mensaje = "{\"type\":\"IDENTIFY\",\"username\":\"" + usuario + "\"}";  
+  cliente.enviar_mensaje(mensaje);
+
+  // Bucle para enviar mensajes al servidor
+  while (std::getline(std::cin, mensaje)) {
+    if (mensaje == "salir") {
+      break;
+    }
+    cliente.enviar_mensaje(mensaje);
+  }
 
   return 0;
 }

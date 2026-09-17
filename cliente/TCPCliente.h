@@ -19,5 +19,6 @@ class TCPCliente {
         TCPCliente(const std::string& ip, int puerto);
         ~TCPCliente();
         bool conectar();
+        bool enviar_mensaje(const std::string& mensaje);
 };
 #endif
