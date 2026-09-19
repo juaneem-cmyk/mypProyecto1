@@ -174,16 +174,20 @@ int main() {
                         int longitud_mensaje = fin_mensaje - clientes[i].buffer;
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
 
-                        // Verifico si el mensaje es de identificación
-                        if (strncmp(clientes[i].buffer, "{\"type\":\"IDENTIFY\"", strlen("{\"type\":\"IDENTIFY\"}")) == 0) {
-                            char nombre_usuario[9];
-                            if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
-                                strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario));
-                                clientes[i].identificado = 1;
-                                printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
-                                enviar_mensaje(clientes[i].socket, "Identificación exitosa\n");
+                        char nombre_usuario[9];
+
+                        // Extraer y validar la identificación del cliente desde el mensaje JSON
+                        if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
+                            strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
+                            clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
+                            clientes[i].identificado = 1;
+                            printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+
+                            char respuesta[256];
+                            if (crear_respuesta_identificacion(clientes[i].nombre_usuario, respuesta, sizeof(respuesta))) {
+                                enviar_mensaje(clientes[i].socket, respuesta);
                             } else {
-                                printf("Mensaje del cliente: %.*s\n", longitud_mensaje, clientes[i].buffer);
+                                fprintf(stderr, "Error al crear la respuesta de identificación\n");
                             }
                         }
 
