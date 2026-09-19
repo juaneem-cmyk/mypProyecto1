@@ -1,6 +1,6 @@
 #include <string.h>
 #include <json-c/json.h>
-#include "protocolo.h"
+#include "Protocolo.h"
 
 /* Me dí cuenta de mi error al no usar json-c, pero busqué lugares para guiarme
     https://github.com/JimmyWorks/TCP-Chat-App.git

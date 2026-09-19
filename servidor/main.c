@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <signal.h>
-#include "protocolo.h"
+#include "Protocolo.h"
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
