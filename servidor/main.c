@@ -220,6 +220,21 @@ int main() {
                     // Procesar todos los mensajes completos en el buffer del cliente
                     while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
                         int longitud_mensaje = fin_mensaje - clientes[i].buffer;
+                        
+                        // Verifico que el mensaje no supere el tamaño máximo permitido
+                        if (longitud_mensaje > MAX_MENSAJE) {
+                            fprintf(stderr, "Mensaje demasiado grande, cliente desconectado\n (˶ᵔ ᵕ ᵔ˶)");
+                            close(fds[i].fd);
+                            free(clientes[i].buffer);
+                            // Remuevo el cliente del arreglo
+                            for (int j = i; j < cantidad - 1; j++) {
+                                fds[j] = fds[j + 1];
+                                clientes[j] = clientes[j + 1];
+                            }
+                            cantidad--;
+                            i--;
+                            break;
+                        }
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
                         char nombre_usuario[9];
                     
@@ -240,6 +255,22 @@ int main() {
                         memmove(clientes[i].buffer, fin_mensaje + 1, restante);
                         clientes[i].usados = restante;
                         clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                    }
+
+                    // Verifico si el mensaje incompleto ya superó el tamaño máximo permitido
+                    if (clientes[i].usados > MAX_MENSAJE) {
+                        fprintf(stderr, "Mensaje demasiado grande. Cliente desconectado.\n");
+                        close(fds[i].fd);
+                        free(clientes[i].buffer);
+
+                        // Remuevo el cliente del arreglo.
+                        for (int j = i; j < cantidad - 1; j++) {
+                            fds[j] = fds[j + 1];
+                            clientes[j] = clientes[j + 1];
+                        }
+                        cantidad--;
+                        i--;
+                        continue;
                     }
                 }
             }
