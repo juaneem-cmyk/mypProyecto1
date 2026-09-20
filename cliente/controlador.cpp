@@ -34,7 +34,7 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         return;
     }
 
-    printf("tipo de mensaje recibido: %s\n", json_object_get_string(tipo));
+    printf("Tipo de mensaje recibido: %s\n", json_object_get_string(tipo));
     
     // Procesar el mensaje según su tipo
     if (strcmp(json_object_get_string(tipo), "RESPONSE") == 0) {

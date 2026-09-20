@@ -16,7 +16,8 @@
  */
 
 #define PUERTO 1234
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 4096
+#define MAX_MENSAJE (1024 * 1024)
 
 // Cerrar adecuadamente el servidor, recomendación de Canek
 volatile sig_atomic_t servidor_activo = 1;
@@ -31,8 +32,9 @@ void enviar_mensaje (int socket, const char *mensaje) {
 
 struct cliente {
     int socket;
-    int usados;
-    char buffer[BUFFER_SIZE];
+    size_t usados;
+    size_t capacidad_buffer;
+    char *buffer;
     char nombre_usuario[9];
     int identificado;
 };
@@ -142,13 +144,21 @@ int main() {
             clientes[cantidad].usados = 0; // Inicializo la cantidad de bytes usados en el buffer del cliente
             clientes[cantidad].nombre_usuario[0] = '\0'; // Inicializo el nombre de usuario del cliente
             clientes[cantidad].identificado = 0; // Inicializo el estado de identificación del cliente
+            clientes[cantidad].capacidad_buffer = BUFFER_SIZE; 
+            clientes[cantidad].buffer = malloc(BUFFER_SIZE);
+            if (clientes[cantidad].buffer == NULL){
+                perror("Error al reservar el buffer del cliente");
+                close(nuevo_socket);
+                continue;
+            }
             cantidad++; // Incremento la cantidad de clientes conectados
         }
         
         // Manejo la comunicación con los clientes conectados
         for (int i = 1; i < cantidad; i++) {
             if (fds[i].revents & POLLIN) {
-                int bytes_leidos = read(fds[i].fd, clientes[i].buffer + clientes[i].usados, BUFFER_SIZE - clientes[i].usados - 1);
+                char lectura[BUFFER_SIZE];
+                int bytes_leidos = read(fds[i].fd, lectura, sizeof(lectura)); 
                 if (bytes_leidos < 0) {
                     perror("Error al leer del cliente");
                     continue;
@@ -156,6 +166,7 @@ int main() {
                 if (bytes_leidos == 0) {
                     printf("Cliente desconectado\n");
                     close(fds[i].fd);
+                    free(clientes[i].buffer);
                     
                     // Remuevo el cliente desconectado del arreglo de fds
                     for (int j = i; j < cantidad - 1; j++) {
@@ -165,24 +176,59 @@ int main() {
                     cantidad--;
                     i--;
                 } else {
-                    clientes[i].usados += bytes_leidos;
+                    // Calculo el espacio que necesito para almacenar los datos recibidos
+                    size_t espacio_necesario = clientes[i].usados + bytes_leidos + 1;
+
+                    //Si no tiene espacio, lo amplio
+                    if (espacio_necesario > clientes[i].capacidad_buffer) {
+                        size_t nueva_capacidad = clientes[i].capacidad_buffer * 2;
+
+                        // Duplico la capacidad para que quepan los datos recibidos
+                        while (nueva_capacidad < espacio_necesario) {
+                            nueva_capacidad *= 2;
+                        }
+                        // Limito el crecimiento
+                        if (nueva_capacidad > MAX_MENSAJE + BUFFER_SIZE + 1) {
+                            nueva_capacidad = MAX_MENSAJE + BUFFER_SIZE + 1;
+                        }
+                        char *nuevo_buffer = realloc(clientes[i].buffer, nueva_capacidad);
+
+                        if (nuevo_buffer == NULL) {
+                            perror("Error al ampliar el buffer del cliente");
+                            close(fds[i].fd);
+                            free(clientes[i].buffer);
+                            
+                            // Remuevo el cliente del arreglo
+                            for (int j = i; j < cantidad - 1; j++) {
+                                fds[j] = fds[j + 1];
+                                clientes[j] = clientes[j + 1];
+                            }
+                            cantidad--;
+                            i--;
+                            continue;
+                        }
+                        clientes[i].buffer = nuevo_buffer;
+                        clientes[i].capacidad_buffer = nueva_capacidad;
+                    }
+                    // Copio los datos recibidos al buffer del cliente
+                    memcpy(clientes[i].buffer + clientes[i].usados, lectura, bytes_leidos);
+                    clientes[i].usados += bytes_leidos; // Actualizo los bytes utilizados
                     clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                
                     char *fin_mensaje;
                     
                     // Procesar todos los mensajes completos en el buffer del cliente
                     while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
                         int longitud_mensaje = fin_mensaje - clientes[i].buffer;
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
-
                         char nombre_usuario[9];
-
+                    
                         // Extraer y validar la identificación del cliente desde el mensaje JSON
                         if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
                             strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
                             clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
                             clientes[i].identificado = 1;
                             printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
-
                             char respuesta[256];
                             if (crear_respuesta_identificacion(clientes[i].nombre_usuario, respuesta, sizeof(respuesta))) {
                                 enviar_mensaje(clientes[i].socket, respuesta);
@@ -190,7 +236,6 @@ int main() {
                                 fprintf(stderr, "Error al crear la respuesta de identificación\n");
                             }
                         }
-
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
                         memmove(clientes[i].buffer, fin_mensaje + 1, restante);
                         clientes[i].usados = restante;

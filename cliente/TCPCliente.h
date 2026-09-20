@@ -17,6 +17,7 @@ class TCPCliente {
         std::string buffer_entrada;
         std::function<void(const std::string&)> manejador_mensajes;
         
+        static constexpr size_t max_mensaje = 1024 * 1024;
         void leer_mensajes();
 
     public:

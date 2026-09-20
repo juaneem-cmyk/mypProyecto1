@@ -93,6 +93,15 @@ void TCPCliente::leer_mensajes() {
                 size_t posicion = buffer_entrada.find('\n');
 
                 if (posicion == std::string::npos) {
+                    if (buffer_entrada.size() > max_mensaje){
+                        fprintf(stderr, "Mensaje recibido demasiado grande.\n");
+                        activo = false;
+                    }
+                    break;
+                }
+                if (posicion > max_mensaje){
+                    fprintf(stderr, "Mensaje recibido demasiado grande.\n");
+                    activo = false;
                     break;
                 }
 
