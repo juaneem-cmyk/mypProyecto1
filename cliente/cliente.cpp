@@ -83,20 +83,34 @@ bool TCPCliente::enviar_mensaje(const std::string& mensaje) {
 
 // Hilo que se encarga de leer los mensajes del servidor
 void TCPCliente::leer_mensajes() {
-    char buffer[1024];
+    char buffer[4096];
     while (activo) {
-        int bytes_recibidos = recv(socket_cliente, buffer, sizeof(buffer) - 1, 0);
+        ssize_t bytes_recibidos = recv(socket_cliente, buffer, sizeof(buffer), 0);
 
         if (bytes_recibidos > 0){
-            buffer[bytes_recibidos] = '\0';
-            if (manejador_mensajes) {
-                manejador_mensajes(buffer);
+            buffer_entrada.append(buffer, bytes_recibidos);
+            while (true) {
+                size_t posicion = buffer_entrada.find('\n');
+
+                if (posicion == std::string::npos) {
+                    break;
+                }
+
+                std::string mensaje = buffer_entrada.substr(0,posicion);
+                buffer_entrada.erase(0,posicion + 1);
+
+                if (mensaje.empty()){
+                    continue;
+                }
+                if (manejador_mensajes){
+                    manejador_mensajes(mensaje);
+                }
             }
         } else if (bytes_recibidos == 0) {
             printf("El servidor ha cerrado la conexión.\n");
             activo = false;
         } else {
-            perror("Error al recibir datos");
+            perror("Error al recibir los datos");
             activo = false;
         }
     }

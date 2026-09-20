@@ -14,6 +14,7 @@ class TCPCliente {
 
         std::atomic<bool> activo;
         std::thread hilo_lectura;
+        std::string buffer_entrada;
         std::function<void(const std::string&)> manejador_mensajes;
         
         void leer_mensajes();

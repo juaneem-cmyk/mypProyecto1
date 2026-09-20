@@ -1,4 +1,5 @@
 #include <json-c/json.h>
+#include <cstring>
 #include <Controlador.h>
 
 // Constructor de mensaje de identificación en formato JSON para enviar al servidor
@@ -23,7 +24,7 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
 
     if (objeto == nullptr) {
-        fprintf(stderr, "Error al procesar el mensaje JSON: %s\n");
+        fprintf(stderr, "Error al procesar el mensaje JSON \n");
         return;
     }
     json_object *tipo;
@@ -33,6 +34,22 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         return;
     }
 
-    printf("Mensaje recibido:\n%s\n", json_object_get_string(tipo));
+    printf("tipo de mensaje recibido: %s\n", json_object_get_string(tipo));
+    
+    // Procesar el mensaje según su tipo
+    if (strcmp(json_object_get_string(tipo), "RESPONSE") == 0) {
+        json_object *operacion;
+        json_object *resultado;
+        json_object *extra;
+        
+        if (json_object_object_get_ex(objeto, "operation", &operacion) &&
+        json_object_object_get_ex(objeto, "result", &resultado) &&
+        json_object_object_get_ex(objeto, "extra", &extra)) {
+            
+            printf("Operación: %s\n", json_object_get_string(operacion));
+            printf("Resultado: %s\n", json_object_get_string(resultado));
+            printf("Extra: %s\n", json_object_get_string(extra));
+        }
+    }
     json_object_put(objeto); // Liberar memoria del objeto JSON
 }
