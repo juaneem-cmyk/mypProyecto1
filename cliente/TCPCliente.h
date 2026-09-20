@@ -4,6 +4,7 @@
 #include <string>
 #include <atomic>
 #include <thread>
+#include <functional>
 // Clase TCPCliente para manejar la conexión TCP con el servidor
 class TCPCliente {
     private:
@@ -13,6 +14,8 @@ class TCPCliente {
 
         std::atomic<bool> activo;
         std::thread hilo_lectura;
+        std::function<void(const std::string&)> manejador_mensajes;
+        
         void leer_mensajes();
 
     public:
@@ -20,5 +23,6 @@ class TCPCliente {
         ~TCPCliente();
         bool conectar();
         bool enviar_mensaje(const std::string& mensaje);
+        void establecer_manejador(std::function<void(const std::string&)> manejador);
 };
 #endif

@@ -6,6 +6,7 @@
 class Controlador {
 public:
     std::string crear_identificacion(const std::string& usuario);
+    void procesar_mensaje(const std::string& mensaje);
 };
 
 #endif

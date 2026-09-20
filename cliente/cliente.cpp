@@ -25,6 +25,12 @@ TCPCliente::~TCPCliente() {
         hilo_lectura.join();
     }
 }
+
+// Establece el manejador de mensajes recibidos
+void TCPCliente::establecer_manejador(std::function<void(const std::string&)> manejador) {
+    manejador_mensajes = manejador;
+}
+
 // Método para conectar al servidor
 bool TCPCliente::conectar() {
     socket_cliente = socket(AF_INET, SOCK_STREAM, 0);
@@ -83,7 +89,9 @@ void TCPCliente::leer_mensajes() {
 
         if (bytes_recibidos > 0){
             buffer[bytes_recibidos] = '\0';
-            printf("Mensaje recibido: %s\n", buffer);
+            if (manejador_mensajes) {
+                manejador_mensajes(buffer);
+            }
         } else if (bytes_recibidos == 0) {
             printf("El servidor ha cerrado la conexión.\n");
             activo = false;

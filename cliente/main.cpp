@@ -10,6 +10,13 @@
 int main() {
   Controlador controlador;
   TCPCliente cliente("127.0.0.1", 1234);
+
+  // Establecer el manejador de mensajes recibidos
+  cliente.establecer_manejador([&controlador](const std::string& mensaje) {
+    controlador.procesar_mensaje(mensaje);
+  });
+
+  // Intentar conectar al servidor
   if (!cliente.conectar()) {
     return 1;
   }
