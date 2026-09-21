@@ -7,6 +7,37 @@
     https://github.com/json-c/json-c
     Tuve que refactorizar varias cosas */
 
+// Extrae el tipo de mensaje que mandó el cliente
+int extraer_tipo(const char *mensaje, char *tipo, size_t tipo_size) {
+    struct json_object *objeto;
+    struct json_object *tipo_json;
+    const char *texto_tipo;
+
+    objeto = json_tokener_parse(mensaje);
+
+    if (objeto == NULL ||
+        !json_object_is_type(objeto, json_type_object) ||
+        !json_object_object_get_ex(objeto, "type", &tipo_json) ||
+        !json_object_is_type(tipo_json, json_type_string)) {
+        if (objeto != NULL) {
+            json_object_put(objeto);
+        }
+        return 0;
+    }
+
+    texto_tipo = json_object_get_string(tipo_json);
+
+    if (texto_tipo == NULL || strlen(texto_tipo) >= tipo_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    strcpy(tipo, texto_tipo);
+
+    json_object_put(objeto);
+    return 1;
+}
+
 // Extrae y valida la identificación del cliente desde el mensaje JSON.
 int extraer_identificacion(const char *mensaje, char *nombre_usuario, size_t usuario_size) {
     struct json_object *objeto;

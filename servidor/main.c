@@ -242,40 +242,51 @@ int main() {
                             fprintf(stderr, "Mensaje demasiado grande, cliente desconectado\n (˶ᵔ ᵕ ᵔ˶)");
                             eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                             i--;
+                            cliente_eliminado = 1;
                             break;
                         }
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
                         
                         // Extraer y validar la identificación del cliente desde el mensaje JSON
-                        char nombre_usuario[9];
-                        if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))){
-                            char respuesta[256];
-                        
-                            //Verifica que el nombre de usuario no este repetido
-                            if(g_hash_table_contains(usuarios, nombre_usuario)) {
-                                if (crear_respuesta_identificacion(nombre_usuario, "USER_ALREADY_EXISTS", respuesta, sizeof(respuesta))) {
-                                    enviar_mensaje(clientes[i].socket, respuesta);
-                                }
-                                printf("Cliente desconectado: usuario repetido (%s)\n", nombre_usuario);
-                                eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
-                                i--;
-                                cliente_eliminado = 1;
-                                break;
-                            
-                            }else {
-                                strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
-                                clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
-                                clientes[i].identificado = 1;
-                                printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
-                                g_hash_table_insert(usuarios, g_strdup(clientes[i].nombre_usuario), GINT_TO_POINTER(clientes[i].socket));
+                        char tipo[32];
 
-                                if (crear_respuesta_identificacion(clientes[i].nombre_usuario,"SUCCESS", respuesta, sizeof(respuesta))) {
-                                    enviar_mensaje(clientes[i].socket, respuesta);
-                                } else {
-                                    fprintf(stderr, "Error al crear la respuesta de identificación\n");
+                        if (extraer_tipo(clientes[i].buffer, tipo, sizeof(tipo))) {
+                        
+                            if (strcmp(tipo, "IDENTIFY") == 0) {
+                                char nombre_usuario[9];
+                            
+                                if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
+                                    char respuesta[256];
+                                        
+                                    // Verifica que el nombre de usuario no este repetido
+                                    if (g_hash_table_contains(usuarios, nombre_usuario)) {
+                                    
+                                        if (crear_respuesta_identificacion(nombre_usuario, "USER_ALREADY_EXISTS", respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i].socket, respuesta);
+                                        }
+                                        printf("Cliente desconectado: usuario repetido (%s)\n", nombre_usuario);
+                                        eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
+                                        i--;
+                                        cliente_eliminado = 1;
+                                        break;
+                                        
+                                    } else {
+                                        strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
+                                        clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0';
+                                        clientes[i].identificado = 1;
+                                        printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+                                        g_hash_table_insert(usuarios, g_strdup(clientes[i].nombre_usuario), GINT_TO_POINTER(clientes[i].socket));
+                                    
+                                        if (crear_respuesta_identificacion(clientes[i].nombre_usuario, "SUCCESS", respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i].socket, respuesta);
+                                        } else {
+                                            fprintf(stderr, "Error al crear la respuesta de identificación\n");
+                                        }
+                                    }
                                 }
                             }
                         }
+                        
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
                         memmove(clientes[i].buffer, fin_mensaje + 1, restante);
                         clientes[i].usados = restante;
