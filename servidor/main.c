@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <glib.h>
 #include <signal.h>
 #include "Protocolo.h"
 
@@ -45,7 +46,10 @@ struct cliente {
 };
 
 // Elimina a un cliente y libera la memoria
-void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantidad, int indice){
+void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantidad, int indice, GHashTable *usuarios){
+    if (clientes[indice].identificado) {
+    g_hash_table_remove(usuarios, clientes[indice].nombre_usuario);
+    }
     close(fds[indice].fd);
     free(clientes[indice].buffer);
 
@@ -55,16 +59,6 @@ void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantida
         clientes[j] = clientes[j + 1];
     }
     (*cantidad)--;
-}
-
-// Verifica que el cliente no este repetido
-int usuario_repetido (struct cliente *clientes, int cantidad, const char *nombre_usuario) {
-    for (int i = 1; i < cantidad; i++) {
-        if (clientes[i].identificado && strcmp(clientes[i].nombre_usuario, nombre_usuario) == 0) {
-            return 1;
-        }
-    }
-    return 0;
 }
 
 int main() {
@@ -105,6 +99,14 @@ int main() {
     int cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
     struct cliente *clientes = malloc(sizeof(struct cliente) * capacidad);
+    GHashTable *usuarios = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+
+    if (usuarios == NULL){
+        fprintf(stderr, "Error al crear la tabla de usuarios\n");
+        free(fds);
+        free(clientes);
+        return 1;
+    }
     
     // Inicializo los clientes
     if (clientes == NULL) {
@@ -194,7 +196,7 @@ int main() {
                 } 
                 if (bytes_leidos == 0) {
                     printf("Cliente desconectado\n");
-                    eliminar_cliente(fds, clientes, &cantidad, i);
+                    eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                     i--;
                 } else {
                     // Calculo el espacio que necesito para almacenar los datos recibidos
@@ -216,7 +218,7 @@ int main() {
 
                         if (nuevo_buffer == NULL) {
                             perror("Error al ampliar el buffer del cliente");
-                            eliminar_cliente(fds, clientes, &cantidad, i);
+                            eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                             i--;
                             continue;
                         }
@@ -238,7 +240,7 @@ int main() {
                         // Verifico que el mensaje no supere el tamaño máximo permitido
                         if (longitud_mensaje > MAX_MENSAJE) {
                             fprintf(stderr, "Mensaje demasiado grande, cliente desconectado\n (˶ᵔ ᵕ ᵔ˶)");
-                            eliminar_cliente(fds, clientes, &cantidad, i);
+                            eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                             i--;
                             break;
                         }
@@ -250,12 +252,12 @@ int main() {
                             char respuesta[256];
                         
                             //Verifica que el nombre de usuario no este repetido
-                            if(usuario_repetido(clientes, cantidad, nombre_usuario)) {
+                            if(g_hash_table_contains(usuarios, nombre_usuario)) {
                                 if (crear_respuesta_identificacion(nombre_usuario, "USER_ALREADY_EXISTS", respuesta, sizeof(respuesta))) {
                                     enviar_mensaje(clientes[i].socket, respuesta);
                                 }
                                 printf("Cliente desconectado: usuario repetido (%s)\n", nombre_usuario);
-                                eliminar_cliente(fds, clientes, &cantidad, i);
+                                eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                                 i--;
                                 cliente_eliminado = 1;
                                 break;
@@ -265,6 +267,8 @@ int main() {
                                 clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
                                 clientes[i].identificado = 1;
                                 printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+                                g_hash_table_insert(usuarios, g_strdup(clientes[i].nombre_usuario), GINT_TO_POINTER(clientes[i].socket));
+
                                 if (crear_respuesta_identificacion(clientes[i].nombre_usuario,"SUCCESS", respuesta, sizeof(respuesta))) {
                                     enviar_mensaje(clientes[i].socket, respuesta);
                                 } else {
@@ -284,7 +288,7 @@ int main() {
                     // Verifico si el mensaje incompleto ya superó el tamaño máximo permitido
                     if (clientes[i].usados > MAX_MENSAJE) {
                         fprintf(stderr, "Mensaje demasiado grande. Cliente desconectado.\n");
-                        eliminar_cliente(fds, clientes, &cantidad, i);
+                        eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                         i--;
                         continue;
                     }
@@ -298,6 +302,7 @@ int main() {
             free(clientes[i].buffer);
         }
         close (servidor_socket);
+        g_hash_table_destroy(usuarios);
         free(fds);
         free(clientes);
         printf("Servidor cerrado\n");
