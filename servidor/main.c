@@ -39,6 +39,19 @@ struct cliente {
     int identificado;
 };
 
+// Elimina a un cliente y libera la memoria
+void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantidad, int indice){
+    close(fds[indice].fd);
+    free(clientes[indice].buffer);
+
+    // Acomodo los clientes que están después del eliminado
+    for (int j = indice; j < *cantidad - 1; j++){
+        fds[j] = fds[j + 1];
+        clientes[j] = clientes[j + 1];
+    }
+    (*cantidad)--;
+}
+
 int main() {
     int servidor_socket, nuevo_socket;
     struct sockaddr_in direccion;
@@ -167,13 +180,7 @@ int main() {
                     printf("Cliente desconectado\n");
                     close(fds[i].fd);
                     free(clientes[i].buffer);
-                    
-                    // Remuevo el cliente desconectado del arreglo de fds
-                    for (int j = i; j < cantidad - 1; j++) {
-                        fds[j] = fds[j + 1];
-                        clientes[j] = clientes[j + 1];
-                    }
-                    cantidad--;
+                    eliminar_cliente(fds, clientes, &cantidad, i);
                     i--;
                 } else {
                     // Calculo el espacio que necesito para almacenar los datos recibidos
@@ -197,13 +204,7 @@ int main() {
                             perror("Error al ampliar el buffer del cliente");
                             close(fds[i].fd);
                             free(clientes[i].buffer);
-                            
-                            // Remuevo el cliente del arreglo
-                            for (int j = i; j < cantidad - 1; j++) {
-                                fds[j] = fds[j + 1];
-                                clientes[j] = clientes[j + 1];
-                            }
-                            cantidad--;
+                            eliminar_cliente(fds, clientes, &cantidad, i);
                             i--;
                             continue;
                         }
@@ -262,13 +263,7 @@ int main() {
                         fprintf(stderr, "Mensaje demasiado grande. Cliente desconectado.\n");
                         close(fds[i].fd);
                         free(clientes[i].buffer);
-
-                        // Remuevo el cliente del arreglo.
-                        for (int j = i; j < cantidad - 1; j++) {
-                            fds[j] = fds[j + 1];
-                            clientes[j] = clientes[j + 1];
-                        }
-                        cantidad--;
+                        eliminar_cliente(fds, clientes, &cantidad, i);
                         i--;
                         continue;
                     }
