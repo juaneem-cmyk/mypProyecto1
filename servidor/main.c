@@ -57,6 +57,16 @@ void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantida
     (*cantidad)--;
 }
 
+// Verifica que el cliente no este repetido
+int usuario_repetido (struct cliente *clientes, int cantidad, const char *nombre_usuario) {
+    for (int i = 1; i < cantidad; i++) {
+        if (clientes[i].identificado && strcmp(clientes[i].nombre_usuario, nombre_usuario) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main() {
     int servidor_socket, nuevo_socket;
     struct sockaddr_in direccion;
@@ -219,6 +229,7 @@ int main() {
                     clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
                 
                     char *fin_mensaje;
+                    int cliente_eliminado = 0;
                     
                     // Procesar todos los mensajes completos en el buffer del cliente
                     while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
@@ -232,25 +243,42 @@ int main() {
                             break;
                         }
                         printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
-                        char nombre_usuario[9];
-                    
+                        
                         // Extraer y validar la identificación del cliente desde el mensaje JSON
-                        if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
-                            strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
-                            clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
-                            clientes[i].identificado = 1;
-                            printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+                        char nombre_usuario[9];
+                        if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))){
                             char respuesta[256];
-                            if (crear_respuesta_identificacion(clientes[i].nombre_usuario, respuesta, sizeof(respuesta))) {
-                                enviar_mensaje(clientes[i].socket, respuesta);
-                            } else {
-                                fprintf(stderr, "Error al crear la respuesta de identificación\n");
+                        
+                            //Verifica que el nombre de usuario no este repetido
+                            if(usuario_repetido(clientes, cantidad, nombre_usuario)) {
+                                if (crear_respuesta_identificacion(nombre_usuario, "USER_ALREADY_EXISTS", respuesta, sizeof(respuesta))) {
+                                    enviar_mensaje(clientes[i].socket, respuesta);
+                                }
+                                printf("Cliente desconectado: usuario repetido (%s)\n", nombre_usuario);
+                                eliminar_cliente(fds, clientes, &cantidad, i);
+                                i--;
+                                cliente_eliminado = 1;
+                                break;
+                            
+                            }else {
+                                strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
+                                clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
+                                clientes[i].identificado = 1;
+                                printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
+                                if (crear_respuesta_identificacion(clientes[i].nombre_usuario,"SUCCESS", respuesta, sizeof(respuesta))) {
+                                    enviar_mensaje(clientes[i].socket, respuesta);
+                                } else {
+                                    fprintf(stderr, "Error al crear la respuesta de identificación\n");
+                                }
                             }
                         }
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
                         memmove(clientes[i].buffer, fin_mensaje + 1, restante);
                         clientes[i].usados = restante;
                         clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                    }
+                    if (cliente_eliminado){
+                        continue;
                     }
 
                     // Verifico si el mensaje incompleto ya superó el tamaño máximo permitido

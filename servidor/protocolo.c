@@ -62,7 +62,7 @@ int extraer_identificacion(const char *mensaje, char *nombre_usuario, size_t usu
 }
 
 // Crea una respuesta JSON para la identificación del cliente. (esta parte la estaba escribiendo cuando me di cuenta de mi error y comencé a refactorizar)
-int crear_respuesta_identificacion(const char *nombre_usuario, char *respuesta, size_t respuesta_size) {
+int crear_respuesta_identificacion(const char *nombre_usuario,const char *resultado, char *respuesta, size_t respuesta_size) {
     struct json_object *objeto;
     const char *texto_json;
     size_t longitud;
@@ -74,7 +74,7 @@ int crear_respuesta_identificacion(const char *nombre_usuario, char *respuesta, 
     }
     json_object_object_add(objeto, "type", json_object_new_string("RESPONSE"));
     json_object_object_add(objeto, "operation", json_object_new_string("IDENTIFY"));
-    json_object_object_add(objeto, "result", json_object_new_string("SUCCESS"));
+    json_object_object_add(objeto, "result", json_object_new_string(resultado));
     json_object_object_add(objeto, "extra", json_object_new_string(nombre_usuario));
     texto_json = json_object_to_json_string(objeto);
     longitud = strlen(texto_json);
