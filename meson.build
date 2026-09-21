@@ -1,3 +1,4 @@
-project('proyecto1', 'c')
+project('proyecto1', ['c', 'cpp'])
 
-executable('prueba', 'prueba.c')
+subdir('servidor')
+subdir('cliente')
