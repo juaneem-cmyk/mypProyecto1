@@ -30,6 +30,10 @@ void enviar_mensaje (int socket, const char *mensaje) {
     send(socket, mensaje, strlen(mensaje), 0);
 }
 
+enum estado_usuario {
+    ACTIVE, AWAY, BUSY
+ };
+
 struct cliente {
     int socket;
     size_t usados;
@@ -37,6 +41,7 @@ struct cliente {
     char *buffer;
     char nombre_usuario[9];
     int identificado;
+    enum estado_usuario estado;
 };
 
 // Elimina a un cliente y libera la memoria
@@ -154,6 +159,7 @@ int main() {
             fds[cantidad].events = POLLIN; // Configuro el evento de lectura para el nuevo socket
             fds[cantidad].revents = 0; // Inicializo los eventos de revents en 0
             clientes[cantidad].socket = nuevo_socket; // Inicializo el socket del cliente
+            clientes[cantidad].estado = ACTIVE; // Inicializo al cliente como activo
             clientes[cantidad].usados = 0; // Inicializo la cantidad de bytes usados en el buffer del cliente
             clientes[cantidad].nombre_usuario[0] = '\0'; // Inicializo el nombre de usuario del cliente
             clientes[cantidad].identificado = 0; // Inicializo el estado de identificación del cliente
@@ -178,8 +184,6 @@ int main() {
                 } 
                 if (bytes_leidos == 0) {
                     printf("Cliente desconectado\n");
-                    close(fds[i].fd);
-                    free(clientes[i].buffer);
                     eliminar_cliente(fds, clientes, &cantidad, i);
                     i--;
                 } else {
@@ -202,8 +206,6 @@ int main() {
 
                         if (nuevo_buffer == NULL) {
                             perror("Error al ampliar el buffer del cliente");
-                            close(fds[i].fd);
-                            free(clientes[i].buffer);
                             eliminar_cliente(fds, clientes, &cantidad, i);
                             i--;
                             continue;
@@ -225,14 +227,7 @@ int main() {
                         // Verifico que el mensaje no supere el tamaño máximo permitido
                         if (longitud_mensaje > MAX_MENSAJE) {
                             fprintf(stderr, "Mensaje demasiado grande, cliente desconectado\n (˶ᵔ ᵕ ᵔ˶)");
-                            close(fds[i].fd);
-                            free(clientes[i].buffer);
-                            // Remuevo el cliente del arreglo
-                            for (int j = i; j < cantidad - 1; j++) {
-                                fds[j] = fds[j + 1];
-                                clientes[j] = clientes[j + 1];
-                            }
-                            cantidad--;
+                            eliminar_cliente(fds, clientes, &cantidad, i);
                             i--;
                             break;
                         }
@@ -261,8 +256,6 @@ int main() {
                     // Verifico si el mensaje incompleto ya superó el tamaño máximo permitido
                     if (clientes[i].usados > MAX_MENSAJE) {
                         fprintf(stderr, "Mensaje demasiado grande. Cliente desconectado.\n");
-                        close(fds[i].fd);
-                        free(clientes[i].buffer);
                         eliminar_cliente(fds, clientes, &cantidad, i);
                         i--;
                         continue;
@@ -274,6 +267,7 @@ int main() {
     // Cierro todos los sockets y libero la memoria
         for (int i = 1; i < cantidad; i++) {
             close(fds[i].fd);
+            free(clientes[i].buffer);
         }
         close (servidor_socket);
         free(fds);
