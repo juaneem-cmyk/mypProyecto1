@@ -34,6 +34,20 @@ std::string Controlador::crear_solicitud_usuarios() {
     return mensaje;
 }
 
+// Crea el mensaje JSON para solicitar la desconexión del cliente.
+std::string Controlador::crear_desconexion() {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("DISCONNECT"));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Procesa un mensaje JSON recibido del servidor
 void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
@@ -66,8 +80,7 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
             printf("Extra: %s\n", json_object_get_string(extra));
         }
     }
-    json_object_put(objeto); // Liberar memoria del objeto JSON
-
+    
     // Procesar la lista de usuarios recibida del servidor
     if (strcmp(json_object_get_string(tipo), "USER_LIST") == 0) {
         json_object *lista_usuarios;
@@ -83,9 +96,10 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
             usuarios.push_back({nombre, json_object_get_string(estado)});
         }
         printf("Usuarios disponibles:\n");
-
+        
         for (size_t i = 0; i < usuarios.size(); i++) {
             printf("%zu. %s [%s]\n", i + 1, usuarios[i].first.c_str(), usuarios[i].second.c_str());
         }
     }
+    json_object_put(objeto); // Liberar memoria del objeto JSON
 }

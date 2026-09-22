@@ -28,14 +28,37 @@ int main() {
   std::getline(std::cin, usuario);
   std::string mensaje_identificacion = controlador.crear_identificacion(usuario);
   cliente.enviar_mensaje(mensaje_identificacion);
+  printf("Esperando instrucciones...\n");
 
-  // Bucle para enviar mensajes al servidor
-  while (std::getline(std::cin, mensaje_identificacion)) {
-    if (mensaje_identificacion == "DISCONNECTED") {
-      break;
+  // Espera los comandos que escriba el usuario
+  std::string comando;
+
+  while (std::getline(std::cin, comando)) {
+    // Permite cerrar el cliente desde la consola.
+    if (comando == "DISCONNECT") {
+        std::string mensaje_desconexion = controlador.crear_desconexion();
+        cliente.enviar_mensaje(mensaje_desconexion);
+        break;
     }
-    cliente.enviar_mensaje(mensaje_identificacion);
-  }
 
+    // Solicita la lista de usuarios al servidor.
+    if (comando == "USERS") {
+        std::string mensaje = controlador.crear_solicitud_usuarios();
+        cliente.enviar_mensaje(mensaje);
+    }
+
+    // Inicia el proceso para enviar un mensaje privado.
+    else if (comando == "TEXT") {
+        std::string mensaje =
+            controlador.crear_solicitud_usuarios();
+
+        cliente.enviar_mensaje(mensaje);
+    }
+
+    // Informa cuando se escribe un comando que todavía no conocemos.
+    else {
+        printf("Comando no reconocido.\n");
+    }
+  }
   return 0;
 }
