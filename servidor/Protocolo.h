@@ -15,4 +15,6 @@ int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t resp
 
 int crear_texto_desde(const char *nombre_usuario, const char *texto, char *respuesta, size_t respuesta_size);
 
+int crear_lista_usuarios(const char *nombres[], const char *estados[], size_t cantidad, char *respuesta, size_t respuesta_size);
+
 #endif

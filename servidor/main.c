@@ -35,6 +35,20 @@ enum estado_usuario {
     ACTIVE, AWAY, BUSY
  };
 
+ // Convierte el estado del usuario a texto para enviarlo mediante el protocolo.
+const char *estado_a_texto(enum estado_usuario estado) {
+    switch (estado) {
+        case ACTIVE:
+            return "ACTIVE";
+        case AWAY:
+            return "AWAY";
+        case BUSY:
+            return "BUSY";
+        default:
+            return "ACTIVE";
+    }
+}
+
 struct cliente {
     int socket;
     size_t usados;

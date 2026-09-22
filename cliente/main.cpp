@@ -31,7 +31,7 @@ int main() {
 
   // Bucle para enviar mensajes al servidor
   while (std::getline(std::cin, mensaje_identificacion)) {
-    if (mensaje_identificacion == "salir") {
+    if (mensaje_identificacion == "DISCONNECTED") {
       break;
     }
     cliente.enviar_mensaje(mensaje_identificacion);
