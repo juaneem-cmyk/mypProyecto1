@@ -21,6 +21,10 @@ std::string Controlador::crear_identificacion(const std::string& usuario) {
 
 // Crea el mensaje JSON para solicitar la lista de usuarios al servidor
 std::string Controlador::crear_solicitud_usuarios() {
+    {
+    std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
+    lista_usuarios_recibida = false;
+    }
     struct json_object *objeto = json_object_new_object();
 
     if (objeto == nullptr) {
@@ -46,6 +50,18 @@ std::string Controlador::crear_desconexion() {
     std::string mensaje(mensaje_json);
     json_object_put(objeto);
     return mensaje;
+}
+
+// Espera hasta que el hilo de lectura reciba USER_LIST.
+void Controlador::esperar_lista_usuarios() {
+    std::unique_lock<std::mutex> bloqueo(mutex_usuarios);
+    condicion_usuarios.wait(bloqueo, [this] {return lista_usuarios_recibida;});
+}
+
+// Devuelve una copia de la lista de usuarios para que el hilo principal pueda consultarla.
+std::vector<std::pair<std::string, std::string>> Controlador::obtener_usuarios() {
+    std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
+    return usuarios;
 }
 
 // Procesa un mensaje JSON recibido del servidor
@@ -95,6 +111,9 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         json_object_object_foreach(lista_usuarios, nombre, estado) {
             usuarios.push_back({nombre, json_object_get_string(estado)});
         }
+        // Indico que ya recibí la lista y despierto al hilo que la estaba esperando.
+        lista_usuarios_recibida = true;
+        condicion_usuarios.notify_all();
         printf("Usuarios disponibles:\n");
         
         for (size_t i = 0; i < usuarios.size(); i++) {

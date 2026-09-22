@@ -52,6 +52,7 @@ int main() {
             controlador.crear_solicitud_usuarios();
 
         cliente.enviar_mensaje(mensaje);
+        controlador.esperar_lista_usuarios();
     }
 
     // Informa cuando se escribe un comando que todavía no conocemos.
