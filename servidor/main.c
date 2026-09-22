@@ -332,6 +332,45 @@ int main() {
                                     free(texto);
                                 }
                             }
+                            // Verifico si el cliente solicitó la lista de usuarios
+                            else if (strcmp(tipo, "USERS") == 0) {
+                                size_t cantidad_usuarios = 0;
+
+                                // Cuento los clientes que ya se identificaron.
+                                for (int j = 1; j < cantidad; j++) {
+                                    if (clientes[j].identificado) {
+                                        cantidad_usuarios++;
+                                    }
+                                }
+                                const char **nombres = malloc(sizeof(char *) * cantidad_usuarios);
+                                const char **estados = malloc(sizeof(char *) * cantidad_usuarios);
+                            
+                                if (nombres == NULL || estados == NULL) {
+                                    free(nombres);
+                                    free(estados);
+                                    break;
+                                }
+                                size_t indice_usuario = 0;
+                            
+                                for (int j = 1; j < cantidad; j++) {
+                                    if (clientes[j].identificado) {
+                                        nombres[indice_usuario] = clientes[j].nombre_usuario;
+                                        estados[indice_usuario] = estado_a_texto(clientes[j].estado);
+                                        indice_usuario++;
+                                    }
+                                }
+                                char *respuesta = malloc(MAX_MENSAJE + 2);
+                            
+                                if (respuesta != NULL) {
+                                
+                                    if (crear_lista_usuarios(nombres, estados, cantidad_usuarios, respuesta, MAX_MENSAJE + 2)) {
+                                        enviar_mensaje(clientes[i].socket, respuesta);
+                                    }
+                                    free(respuesta);
+                                }
+                                free(nombres);
+                                free(estados);
+                            }
                         }
                         
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
