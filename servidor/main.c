@@ -310,7 +310,10 @@ int main() {
                                         printf("El usuario %s no existe\n", nombre_destino);
                                     } else {
                                         int socket_destino = GPOINTER_TO_INT(valor);
-                                        printf("Mensaje privado para %s, socket %d: %s\n", nombre_destino, socket_destino, texto);
+                                        char respuesta[256];
+                                        if (crear_texto_desde(clientes[i].nombre_usuario, texto, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(socket_destino, respuesta);
+                                        }
                                     }
                                     free(texto);
                                 }

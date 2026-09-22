@@ -13,4 +13,6 @@ int crear_respuesta_identificacion(const char *nombre_usuario, const char *resul
 
 int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t respuesta_size);
 
+int crear_texto_desde(const char *nombre_usuario, const char *texto, char *respuesta, size_t respuesta_size);
+
 #endif
