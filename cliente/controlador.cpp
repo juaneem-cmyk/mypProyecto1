@@ -19,6 +19,21 @@ std::string Controlador::crear_identificacion(const std::string& usuario) {
     return mensaje;
 }
 
+// Crea el mensaje JSON para solicitar la lista de usuarios al servidor
+std::string Controlador::crear_solicitud_usuarios() {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+
+    json_object_object_add( objeto, "type", json_object_new_string("USERS"));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Procesa un mensaje JSON recibido del servidor
 void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
@@ -52,4 +67,25 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         }
     }
     json_object_put(objeto); // Liberar memoria del objeto JSON
+
+    // Procesar la lista de usuarios recibida del servidor
+    if (strcmp(json_object_get_string(tipo), "USER_LIST") == 0) {
+        json_object *lista_usuarios;
+
+        if (!json_object_object_get_ex(objeto, "users", &lista_usuarios) || !json_object_is_type(lista_usuarios, json_type_object)) {
+            fprintf(stderr, "Error: USER_LIST no contiene un objeto 'users'.\n");
+            json_object_put(objeto);
+            return;
+        }
+        std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
+        usuarios.clear();
+        json_object_object_foreach(lista_usuarios, nombre, estado) {
+            usuarios.push_back({nombre, json_object_get_string(estado)});
+        }
+        printf("Usuarios disponibles:\n");
+
+        for (size_t i = 0; i < usuarios.size(); i++) {
+            printf("%zu. %s [%s]\n", i + 1, usuarios[i].first.c_str(), usuarios[i].second.c_str());
+        }
+    }
 }
