@@ -67,7 +67,7 @@ bool TCPCliente::conectar() {
 
 // Método para enviar un mensaje al servidor
 bool TCPCliente::enviar_mensaje(const std::string& mensaje) {
-    if (socket_cliente == -1) {
+    if (!activo || socket_cliente == -1) {
         fprintf(stderr, "No hay conexión establecida con el servidor.\n");        
         return false;
     }
@@ -79,6 +79,11 @@ bool TCPCliente::enviar_mensaje(const std::string& mensaje) {
         return false;
     }
     return true;
+}
+
+// Indica si el cliente sigue conectado al servidor.
+bool TCPCliente::esta_activo() const {
+    return activo.load();
 }
 
 // Hilo que se encarga de leer los mensajes del servidor

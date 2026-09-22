@@ -28,12 +28,11 @@ int main() {
   std::getline(std::cin, usuario);
   std::string mensaje_identificacion = controlador.crear_identificacion(usuario);
   cliente.enviar_mensaje(mensaje_identificacion);
-  printf("Esperando instrucciones...\n");
 
   // Espera los comandos que escriba el usuario
   std::string comando;
 
-  while (std::getline(std::cin, comando)) {
+  while (cliente.esta_activo() && std::getline(std::cin, comando)) {
     // Permite cerrar el cliente desde la consola.
     if (comando == "DISCONNECT") {
         std::string mensaje_desconexion = controlador.crear_desconexion();
