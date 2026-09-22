@@ -38,6 +38,35 @@ int extraer_tipo(const char *mensaje, char *tipo, size_t tipo_size) {
     return 1;
 }
 
+int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+
+    json_object_object_add(objeto, "type", json_object_new_string("RESPONSE"));
+    json_object_object_add(objeto, "operation", json_object_new_string("INVALID"));
+    json_object_object_add(objeto, "result", json_object_new_string(resultado));
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}
+
 // Extrae y valida la identificación del cliente desde el mensaje JSON.
 int extraer_identificacion(const char *mensaje, char *nombre_usuario, size_t usuario_size) {
     struct json_object *objeto;

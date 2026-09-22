@@ -284,6 +284,17 @@ int main() {
                                         }
                                     }
                                 }
+                            } else if (!clientes[i].identificado) {
+                                char respuesta[256];
+
+                                if (crear_respuesta_invalida("NOT_IDENTIFIED", respuesta, sizeof(respuesta))) {
+                                    enviar_mensaje(clientes[i].socket, respuesta);
+                                }
+                                printf("Cliente desconectado: no estaba identificado\n");
+                                eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
+                                i--;
+                                cliente_eliminado = 1;
+                                break;
                             }
                         }
                         

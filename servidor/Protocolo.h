@@ -9,4 +9,6 @@ int extraer_tipo(const char *mensaje, char *tipo, size_t tipo_size);
 
 int crear_respuesta_identificacion(const char *nombre_usuario, const char *resultado, char *respuesta, size_t respuesta_size);
 
+int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t respuesta_size);
+
 #endif
