@@ -175,13 +175,14 @@ int main() {
             clientes[cantidad].usados = 0; // Inicializo la cantidad de bytes usados en el buffer del cliente
             clientes[cantidad].nombre_usuario[0] = '\0'; // Inicializo el nombre de usuario del cliente
             clientes[cantidad].identificado = 0; // Inicializo el estado de identificación del cliente
-            clientes[cantidad].capacidad_buffer = BUFFER_SIZE; 
-            clientes[cantidad].buffer = malloc(BUFFER_SIZE);
+            clientes[cantidad].capacidad_buffer = BUFFER_SIZE; // Inicializo la capacidad del buffer para recibir los mensajes del cliente
+            clientes[cantidad].buffer = malloc(BUFFER_SIZE); // Reservo memoria para el buffer inicial del cliente
+            // Verifico que la reserva de memoria se haya realizado correctamente.
             if (clientes[cantidad].buffer == NULL){
                 perror("Error al reservar el buffer del cliente");
                 close(nuevo_socket);
                 continue;
-            }
+            } 
             cantidad++; // Incremento la cantidad de clientes conectados
         }
         
@@ -284,6 +285,7 @@ int main() {
                                         }
                                     }
                                 }
+                            // Si el usuario no se identifica
                             } else if (!clientes[i].identificado) {
                                 char respuesta[256];
 

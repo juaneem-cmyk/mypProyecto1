@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include <json-c/json.h>
 #include "Protocolo.h"
 
@@ -38,6 +39,7 @@ int extraer_tipo(const char *mensaje, char *tipo, size_t tipo_size) {
     return 1;
 }
 
+// Crea una respuesta para indicar que el mensaje recibido no es válido
 int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t respuesta_size) {
     struct json_object *objeto;
     const char *texto_json;
@@ -119,6 +121,65 @@ int extraer_identificacion(const char *mensaje, char *nombre_usuario, size_t usu
     nombre_usuario[usuario_size - 1] = '\0'; // Asegurar terminación nula
     json_object_put(objeto); 
     return 1; 
+}
+
+// Extrae del mensaje JSON el nombre del usuario destinatario y el texto enviado
+int extraer_texto(const char *mensaje, char *nombre_usuario, size_t usuario_size, char **texto) {
+    struct json_object *objeto;
+    struct json_object *tipo;
+    struct json_object *usuario;
+    struct json_object *texto_json;
+    const char *nombre;
+    const char *contenido;
+    *texto = NULL;
+    objeto = json_tokener_parse(mensaje);
+
+    if (objeto == NULL || !json_object_is_type(objeto, json_type_object)) {
+        if (objeto != NULL) {
+            json_object_put(objeto);
+        }
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "type", &tipo) || !json_object_is_type(tipo, json_type_string) || strcmp(json_object_get_string(tipo), "TEXT") != 0) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "username", &usuario) || !json_object_is_type(usuario, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    nombre = json_object_get_string(usuario);
+
+    if (nombre == NULL || strlen(nombre) >= usuario_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "text", &texto_json) || !json_object_is_type(texto_json, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    contenido = json_object_get_string(texto_json);
+
+    if (contenido == NULL) {
+        json_object_put(objeto);
+        return 0;
+    }
+    strncpy(nombre_usuario, nombre, usuario_size - 1);
+    nombre_usuario[usuario_size - 1] = '\0';
+    *texto = malloc(strlen(contenido) + 1);
+
+    if (*texto == NULL) {
+        json_object_put(objeto);
+        return 0;
+    }
+    strcpy(*texto, contenido);
+    json_object_put(objeto);
+    return 1;
 }
 
 // Crea una respuesta JSON para la identificación del cliente. (esta parte la estaba escribiendo cuando me di cuenta de mi error y comencé a refactorizar)
