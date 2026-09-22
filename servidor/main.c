@@ -298,6 +298,23 @@ int main() {
                                 cliente_eliminado = 1;
                                 break;
                             }
+                            // Verificamos que el destinatario se encuentra en el diccionario
+                            else if (strcmp(tipo, "TEXT") == 0) {
+                                char nombre_destino[9];
+                                char *texto = NULL;
+
+                                if (extraer_texto(clientes[i].buffer, nombre_destino, sizeof(nombre_destino), &texto)) {
+                                    gpointer valor = g_hash_table_lookup(usuarios, nombre_destino);
+                                
+                                    if (valor == NULL) {
+                                        printf("El usuario %s no existe\n", nombre_destino);
+                                    } else {
+                                        int socket_destino = GPOINTER_TO_INT(valor);
+                                        printf("Mensaje privado para %s, socket %d: %s\n", nombre_destino, socket_destino, texto);
+                                    }
+                                    free(texto);
+                                }
+                            }
                         }
                         
                         int restante = clientes[i].usados - (longitud_mensaje + 1);
