@@ -44,8 +44,14 @@ int main() {
 
     // Solicita la lista de usuarios al servidor
     if (comando == "USERS") {
-        std::string mensaje = controlador.crear_solicitud_usuarios();
-        cliente.enviar_mensaje(mensaje);
+      std::string mensaje = controlador.crear_solicitud_usuarios();
+      cliente.enviar_mensaje(mensaje);
+      controlador.esperar_lista_usuarios();
+      auto lista = controlador.obtener_usuarios();
+      printf("Usuarios disponibles:\n");
+      for (size_t i = 0; i < lista.size(); i++) {
+          printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
+      }
     }
 
     // Inicia el proceso para enviar un mensaje privado
@@ -103,8 +109,17 @@ int main() {
         printf("Selección no válida.\n");
         continue;
       }
-      printf("Destinatario seleccionado: %s\n",
-      destinatario.c_str());
+      printf("Destinatario seleccionado: %s\n", destinatario.c_str());
+      // Verifico que el usuario no haya seleccionado su propio nombre :v
+      if (destinatario == usuario) {
+        printf("No puedes enviarte un mensaje a ti mismo.\n");
+        continue;
+      }
+      printf("Escribe tu mensaje: ");
+      std::string texto;
+      std::getline(std::cin, texto);
+      std::string mensaje_texto = controlador.crear_texto(destinatario, texto);
+      cliente.enviar_mensaje(mensaje_texto);
     }
   }
   return 0;

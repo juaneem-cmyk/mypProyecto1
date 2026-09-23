@@ -133,10 +133,16 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         // Indico que ya recibí la lista y despierto al hilo que la estaba esperando
         lista_usuarios_recibida = true;
         condicion_usuarios.notify_all();
-        printf("Usuarios disponibles:\n");
-        
-        for (size_t i = 0; i < usuarios.size(); i++) {
-            printf("%zu. %s [%s]\n", i + 1, usuarios[i].first.c_str(), usuarios[i].second.c_str());
+    }
+
+    // Procesar un mensaje privado recibido
+    if (strcmp(json_object_get_string(tipo), "TEXT_FROM") == 0) {
+        json_object *usuario;
+        json_object *texto;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) && 
+        json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("\nMensaje privado de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
         }
     }
     json_object_put(objeto); // Liberar memoria del objeto JSON
