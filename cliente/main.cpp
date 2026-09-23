@@ -35,49 +35,49 @@ int main() {
   std::string comando;
 
   while (cliente.esta_activo() && std::getline(std::cin, comando)) {
-    // Permite cerrar el cliente desde la consola.
+    // Permite cerrar el cliente desde la consola
     if (comando == "DISCONNECT") {
         std::string mensaje_desconexion = controlador.crear_desconexion();
         cliente.enviar_mensaje(mensaje_desconexion);
         break;
     }
 
-    // Solicita la lista de usuarios al servidor.
+    // Solicita la lista de usuarios al servidor
     if (comando == "USERS") {
         std::string mensaje = controlador.crear_solicitud_usuarios();
         cliente.enviar_mensaje(mensaje);
     }
 
-    // Inicia el proceso para enviar un mensaje privado.
+    // Inicia el proceso para enviar un mensaje privado
     else if (comando == "TEXT") {
       std::string mensaje = controlador.crear_solicitud_usuarios();
       cliente.enviar_mensaje(mensaje);
       controlador.esperar_lista_usuarios();
 
-      // Obtengo la lista de usuarios recibida del servidor.
+      // Obtengo la lista de usuarios recibida del servidor
       auto lista = controlador.obtener_usuarios();
       
-      // Verifico que haya usuarios disponibles.
+      // Verifico que haya usuarios disponibles
       if (lista.empty()) {
           printf("No hay usuarios disponibles.\n");
           continue;
       }
-      // Muestro los usuarios para que el usuario pueda seleccionar uno.
+      // Muestro los usuarios para que el usuario pueda seleccionar uno
       printf("Usuarios disponibles:\n");
       for (size_t i = 0; i < lista.size(); i++) {
           printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
       }
-      // Solicito al usuario que seleccione un destinatario.
+      // Solicito al usuario que seleccione un destinatario
       printf("Seleccione un usuario por número o nombre: ");
       std::string seleccion;
       std::getline(std::cin, seleccion);
       std::string destinatario;
       bool usuario_encontrado = false;
-      // Verifico si la selección está formada solamente por números.
+      // Verifico si la selección está formada solamente por números
       bool es_numero = !seleccion.empty() && std::all_of(seleccion.begin(), seleccion.end(), [](unsigned char caracter) {return std::isdigit(caracter);});
               
       if (es_numero) {
-        // Convierto la selección numérica a un índice de la lista.
+        // Convierto la selección numérica a un índice de la lista
         try {
           int numero_usuario = std::stoi(seleccion);
           // Verifico que el número corresponda a un usuario.
@@ -86,10 +86,10 @@ int main() {
             usuario_encontrado = true;
           }
         } catch (...) {
-            usuario_encontrado = false;
+          usuario_encontrado = false;
         }
       } else {
-        // Busco directamente el nombre escrito por el usuario.
+        // Busco directamente el nombre escrito por el usuario
         for (const auto& usuario : lista) {
           if (usuario.first == seleccion) {
             destinatario = usuario.first;
@@ -98,7 +98,7 @@ int main() {
           }
         }
       }
-      // Verifico que el usuario seleccionado exista en la lista.
+      // Verifico que el usuario seleccionado exista en la lista
       if (!usuario_encontrado) {
         printf("Selección no válida.\n");
         continue;

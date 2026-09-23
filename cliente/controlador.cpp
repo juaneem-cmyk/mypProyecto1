@@ -38,7 +38,7 @@ std::string Controlador::crear_solicitud_usuarios() {
     return mensaje;
 }
 
-// Crea el mensaje JSON para solicitar la desconexión del cliente.
+// Crea el mensaje JSON para solicitar la desconexión del cliente
 std::string Controlador::crear_desconexion() {
     struct json_object *objeto = json_object_new_object();
 
@@ -52,13 +52,32 @@ std::string Controlador::crear_desconexion() {
     return mensaje;
 }
 
-// Espera hasta que el hilo de lectura reciba USER_LIST.
+// Crea el mensaje JSON para enviar un texto privado a otro usuario
+std::string Controlador::crear_texto(const std::string& destinatario, const std::string& texto) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    // Agrego el tipo de operación
+    json_object_object_add(objeto, "type", json_object_new_string("TEXT"));
+    // Agrego el nombre del usuario destinatario
+    json_object_object_add(objeto, "username", json_object_new_string(destinatario.c_str()));
+    // Agrego el contenido del mensaje
+    json_object_object_add(objeto, "text", json_object_new_string(texto.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Espera hasta que el hilo de lectura reciba USER_LIST
 void Controlador::esperar_lista_usuarios() {
     std::unique_lock<std::mutex> bloqueo(mutex_usuarios);
     condicion_usuarios.wait(bloqueo, [this] {return lista_usuarios_recibida;});
 }
 
-// Devuelve una copia de la lista de usuarios para que el hilo principal pueda consultarla.
+// Devuelve una copia de la lista de usuarios para que el hilo principal pueda consultarla
 std::vector<std::pair<std::string, std::string>> Controlador::obtener_usuarios() {
     std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
     return usuarios;
@@ -111,7 +130,7 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         json_object_object_foreach(lista_usuarios, nombre, estado) {
             usuarios.push_back({nombre, json_object_get_string(estado)});
         }
-        // Indico que ya recibí la lista y despierto al hilo que la estaba esperando.
+        // Indico que ya recibí la lista y despierto al hilo que la estaba esperando
         lista_usuarios_recibida = true;
         condicion_usuarios.notify_all();
         printf("Usuarios disponibles:\n");
