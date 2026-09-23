@@ -48,13 +48,43 @@ int main() {
 
     // Inicia el proceso para enviar un mensaje privado.
     else if (comando == "TEXT") {
-        std::string mensaje =
-            controlador.crear_solicitud_usuarios();
-
-        cliente.enviar_mensaje(mensaje);
-        controlador.esperar_lista_usuarios();
+      std::string mensaje = controlador.crear_solicitud_usuarios();
+      cliente.enviar_mensaje(mensaje);
+      controlador.esperar_lista_usuarios();
+      // Obtengo la lista de usuarios recibida del servidor.
+      auto lista = controlador.obtener_usuarios();
+      // Verifico que haya usuarios disponibles.
+      if (lista.empty()) {
+          printf("No hay usuarios disponibles.\n");
+          continue;
+      }
+      // Muestro los usuarios para que el usuario pueda seleccionar uno.
+      printf("Usuarios disponibles:\n");
+      for (size_t i = 0; i < lista.size(); i++) {
+          printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
+      }
+      // Solicito al usuario que seleccione un destinatario.
+      printf("Seleccione un usuario: ");
+      std::string seleccion;
+      std::getline(std::cin, seleccion);
+      // Convierto la selección escrita por el usuario a un número.
+      int numero_usuario;
+          
+      try {
+          numero_usuario = std::stoi(seleccion);
+      } catch (...) {
+          printf("Selección no válida.\n");
+          continue;
+      }
+      // Verifico que el número corresponda a un usuario de la lista.
+      if (numero_usuario < 1 || static_cast<size_t>(numero_usuario) > lista.size()) {
+          printf("Selección no válida.\n");
+          continue;
+      }
+      // Obtengo el nombre del usuario seleccionado.
+      std::string destinatario = lista[numero_usuario - 1].first;
+      printf("Destinatario seleccionado: %s\n", destinatario.c_str());
     }
-
     // Informa cuando se escribe un comando que todavía no conocemos.
     else {
         printf("Comando no reconocido.\n");
