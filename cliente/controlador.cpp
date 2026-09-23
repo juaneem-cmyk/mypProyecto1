@@ -71,6 +71,21 @@ std::string Controlador::crear_texto(const std::string& destinatario, const std:
     return mensaje;
 }
 
+// Crea el mensaje JSON para cambiar el estado del usuario
+std::string Controlador::crear_status(const std::string& status) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("STATUS"));
+    json_object_object_add(objeto, "status", json_object_new_string(status.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Espera hasta que el hilo de lectura reciba USER_LIST
 void Controlador::esperar_lista_usuarios() {
     std::unique_lock<std::mutex> bloqueo(mutex_usuarios);

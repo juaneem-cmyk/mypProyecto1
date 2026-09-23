@@ -311,7 +311,38 @@ int main() {
                                 i--;
                                 cliente_eliminado = 1;
                                 break;
+                            
+                            } else if (strcmp(tipo, "STATUS") == 0) {
+                                char status[7];
+                                // Extraigo y valido el estado solicitado
+                                if (extraer_status(clientes[i].buffer, status, sizeof(status))) {
+                                    enum estado_usuario nuevo_estado;
+
+                                    if (strcmp(status, "ACTIVE") == 0) {
+                                        nuevo_estado = ACTIVE;
+                                    } else if (strcmp(status, "AWAY") == 0) {
+                                        nuevo_estado = AWAY;
+                                    } else {
+                                        nuevo_estado = BUSY;
+                                    }
+                            
+                                    // Solo notifico si realmente cambió el estado
+                                    if (clientes[i].estado != nuevo_estado) {
+                                        clientes[i].estado = nuevo_estado;
+                                        char respuesta[256];
+                                        if (crear_nuevo_status(clientes[i].nombre_usuario, status, respuesta, sizeof(respuesta))) {
+                                                
+                                            // Notifico el nuevo estado a los demás clientes
+                                            for (int j = 1; j < cantidad; j++) {
+                                                if (j != i && clientes[j].identificado) {
+                                                    enviar_mensaje(clientes[j].socket, respuesta);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
+
                             // Verificamos que el destinatario se encuentra en el diccionario
                             else if (strcmp(tipo, "TEXT") == 0) {
                                 char nombre_destino[9];

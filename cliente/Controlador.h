@@ -18,6 +18,7 @@ class Controlador {
     std::string crear_identificacion(const std::string& usuario);
     std::string crear_solicitud_usuarios();
     std::string crear_texto(const std::string& destinatario, const std::string& texto);
+    std::string crear_status(const std::string& status);
     std::string crear_desconexion();
     std::vector<std::pair<std::string, std::string>> obtener_usuarios();
     void procesar_mensaje(const std::string& mensaje);

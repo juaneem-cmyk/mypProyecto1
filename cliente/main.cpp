@@ -54,6 +54,22 @@ int main() {
       }
     }
 
+    // Cambia el estado del usuario
+    else if (comando == "STATUS") {
+      printf("Ingrese el nuevo estado (ACTIVE, AWAY o BUSY): ");
+      std::string estado;
+      std::getline(std::cin, estado);
+
+      // Verifico que el estado sea uno de los permitidos
+      if (estado != "ACTIVE" && estado != "AWAY" && estado != "BUSY") {
+        printf("Estado no válido.\n");
+        continue;
+      }
+      std::string mensaje_status = controlador.crear_status(estado);
+      cliente.enviar_mensaje(mensaje_status);
+      printf("Estado cambiado a %s.\n", estado.c_str());
+    }
+
     // Inicia el proceso para enviar un mensaje privado
     else if (comando == "TEXT") {
       std::string mensaje = controlador.crear_solicitud_usuarios();
