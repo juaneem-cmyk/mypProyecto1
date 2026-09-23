@@ -9,6 +9,8 @@ int extraer_texto(const char *mensaje, char *nombre_usuario, size_t usuario_size
 
 int extraer_tipo(const char *mensaje, char *tipo, size_t tipo_size);
 
+int extraer_status(const char *mensaje, char *status, size_t status_size);
+
 int crear_respuesta_identificacion(const char *nombre_usuario, const char *resultado, char *respuesta, size_t respuesta_size);
 
 int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t respuesta_size);
@@ -16,5 +18,7 @@ int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t resp
 int crear_texto_desde(const char *nombre_usuario, const char *texto, char *respuesta, size_t respuesta_size);
 
 int crear_lista_usuarios(const char *nombres[], const char *estados[], size_t cantidad, char *respuesta, size_t respuesta_size);
+
+int crear_nuevo_status(const char *nombre_usuario, const char *status, char *respuesta, size_t respuesta_size);
 
 #endif
