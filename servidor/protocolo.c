@@ -387,3 +387,40 @@ int crear_lista_usuarios(const char *nombres[], const char *estados[], size_t ca
     json_object_put(objeto);
     return 1;
 }
+
+// Extrae y valida el nombre de una sala para NEW_ROOM.
+int extraer_nombre_sala(const char *mensaje, char *nombre_sala, size_t sala_size) {
+    struct json_object *objeto;
+    struct json_object *tipo;
+    struct json_object *sala;
+    const char *texto_sala;
+    objeto = json_tokener_parse(mensaje);
+
+    if (objeto == NULL) {
+        return 0;
+    }
+
+    if (!json_object_is_type(objeto, json_type_object)) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "type", &tipo) || !json_object_is_type(tipo, json_type_string) || strcmp(json_object_get_string(tipo), "NEW_ROOM") != 0) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "roomname", &sala) || !json_object_is_type(sala, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+    texto_sala = json_object_get_string(sala);
+
+    if (texto_sala == NULL || strlen(texto_sala) == 0 || strlen(texto_sala) >= sala_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    strcpy(nombre_sala, texto_sala);
+    json_object_put(objeto);
+    return 1;
+}

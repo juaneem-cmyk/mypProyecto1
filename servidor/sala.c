@@ -23,7 +23,9 @@ struct sala *crear_sala(const char *nombre) {
     return sala;
 }
 
-void destruir_sala(struct sala *sala) {
+void destruir_sala(gpointer dato) {
+    struct sala *sala = dato;
+
     if (sala == NULL) {
         return;
     }

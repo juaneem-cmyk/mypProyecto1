@@ -23,4 +23,8 @@ int crear_lista_usuarios(const char *nombres[], const char *estados[], size_t ca
 
 int crear_nuevo_status(const char *nombre_usuario, const char *status, char *respuesta, size_t respuesta_size);
 
+int extraer_nombre_sala(const char *mensaje, char *nombre_sala, size_t sala_size);
+
+int crear_respuesta_sala(const char *resultado, const char *nombre_sala, char *respuesta, size_t respuesta_size);
+
 #endif

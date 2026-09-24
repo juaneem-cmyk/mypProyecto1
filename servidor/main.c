@@ -9,6 +9,7 @@
 #include <glib.h>
 #include <signal.h>
 #include "Protocolo.h"
+#include "sala.h"
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
@@ -125,6 +126,7 @@ int main() {
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
     struct cliente **clientes = malloc(sizeof(struct cliente *) * capacidad);
     GHashTable *usuarios = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    GHashTable *salas = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, destruir_sala);
 
     if (usuarios == NULL){
         fprintf(stderr, "Error al crear la tabla de usuarios\n");
@@ -392,7 +394,7 @@ int main() {
                                         }
                                     }
                                     free(texto);
-                                    
+
                                 } else {
                                     rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
                                     i--;
@@ -473,6 +475,7 @@ int main() {
             free(clientes[i]);
         }
         close (servidor_socket);
+        g_hash_table_destroy(salas);
         g_hash_table_destroy(usuarios);
         free(fds);
         free(clientes);
