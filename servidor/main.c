@@ -75,6 +75,17 @@ void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, int *cantid
     (*cantidad)--;
 }
 
+// Envía una respuesta de mensaje inválido y desconecta al cliente.
+void rechazar_mensaje_invalido(struct pollfd *fds, struct cliente **clientes, int *cantidad, int indice, GHashTable *usuarios) {
+    char respuesta[256];
+
+    if (crear_respuesta_invalida("INVALID", respuesta, sizeof(respuesta))) {
+        enviar_mensaje(clientes[indice]->socket, respuesta);
+    }
+    printf("Cliente desconectado: mensaje inválido\n");
+    eliminar_cliente(fds, clientes, cantidad, indice, usuarios);
+}
+
 int main() {
     int servidor_socket, nuevo_socket;
     struct sockaddr_in direccion;
@@ -280,8 +291,7 @@ int main() {
                             
                                 if (extraer_identificacion(clientes[i]->buffer, nombre_usuario, sizeof(nombre_usuario))) {
                                     char respuesta[256];
-                                        
-                                    // Verifica que el nombre de usuario no este repetido
+
                                     if (g_hash_table_contains(usuarios, nombre_usuario)) {
                                     
                                         if (crear_respuesta_identificacion(nombre_usuario, "USER_ALREADY_EXISTS", respuesta, sizeof(respuesta))) {
@@ -292,21 +302,24 @@ int main() {
                                         i--;
                                         cliente_eliminado = 1;
                                         break;
-                                        
                                     } else {
                                         strncpy(clientes[i]->nombre_usuario, nombre_usuario, sizeof(clientes[i]->nombre_usuario) - 1);
                                         clientes[i]->nombre_usuario[sizeof(clientes[i]->nombre_usuario) - 1] = '\0';
                                         clientes[i]->identificado = 1;
-                                        printf("Cliente identificado como: %s\n", clientes[i]->nombre_usuario);
+                                        printf("Cliente identificado como: %s\n", clientes[i]->nombre_usuario);                                        
                                         g_hash_table_insert(usuarios, g_strdup(clientes[i]->nombre_usuario), clientes[i]);
-                                    
+
                                         if (crear_respuesta_identificacion(clientes[i]->nombre_usuario, "SUCCESS", respuesta, sizeof(respuesta))) {
                                             enviar_mensaje(clientes[i]->socket, respuesta);
-                                        } else {
-                                            fprintf(stderr, "Error al crear la respuesta de identificación\n");
                                         }
                                     }
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
                                 }
+
                             // Si el usuario no se identifica
                             } else if (!clientes[i]->identificado) {
                                 char respuesta[256];
@@ -358,9 +371,13 @@ int main() {
 
                                 if (extraer_texto(clientes[i]->buffer, nombre_destino, sizeof(nombre_destino), &texto)) {
                                     struct cliente *destinatario = g_hash_table_lookup(usuarios, nombre_destino);
-
+                                                
                                     if (destinatario == NULL) {
-                                        printf("El usuario %s no existe\n", nombre_destino);
+                                        char respuesta[256];
+                                    
+                                        if (crear_respuesta_invalida("NO_SUCH_USER", respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
                                     } else {
                                         char respuesta[256];
                                     
@@ -373,35 +390,31 @@ int main() {
                             }
                             // Verifico si el cliente solicitó la lista de usuarios
                             else if (strcmp(tipo, "USERS") == 0) {
-                                size_t cantidad_usuarios = 0;
-
-                                // Cuento los clientes que ya se identificaron.
-                                for (int j = 1; j < cantidad; j++) {
-                                    if (clientes[j]->identificado) {
-                                        cantidad_usuarios++;
-                                    }
-                                }
+                                size_t cantidad_usuarios = g_hash_table_size(usuarios);
                                 const char **nombres = malloc(sizeof(char *) * cantidad_usuarios);
                                 const char **estados = malloc(sizeof(char *) * cantidad_usuarios);
-                            
+
                                 if (nombres == NULL || estados == NULL) {
                                     free(nombres);
                                     free(estados);
-                                    break;
+                                    continue;
                                 }
-                                size_t indice_usuario = 0;
                             
-                                for (int j = 1; j < cantidad; j++) {
-                                    if (clientes[j]->identificado) {
-                                        nombres[indice_usuario] = clientes[j]->nombre_usuario;
-                                        estados[indice_usuario] = estado_a_texto(clientes[j]->estado);
-                                        indice_usuario++;
-                                    }
+                                GHashTableIter iter;
+                                gpointer clave;
+                                gpointer valor;
+                                size_t indice_usuario = 0;
+                                g_hash_table_iter_init(&iter, usuarios);
+
+                                while (g_hash_table_iter_next(&iter, &clave, &valor)) {
+                                    struct cliente *cliente = valor;
+                                    nombres[indice_usuario] = cliente->nombre_usuario;
+                                    estados[indice_usuario] = estado_a_texto(cliente->estado);
+                                    indice_usuario++;
                                 }
                                 char *respuesta = malloc(MAX_MENSAJE + 2);
                             
                                 if (respuesta != NULL) {
-                                
                                     if (crear_lista_usuarios(nombres, estados, cantidad_usuarios, respuesta, MAX_MENSAJE + 2)) {
                                         enviar_mensaje(clientes[i]->socket, respuesta);
                                     }
@@ -411,7 +424,6 @@ int main() {
                                 free(estados);
                             }
                         }
-                        
                         int restante = clientes[i]->usados - (longitud_mensaje + 1);
                         memmove(clientes[i]->buffer, fin_mensaje + 1, restante);
                         clientes[i]->usados = restante;
