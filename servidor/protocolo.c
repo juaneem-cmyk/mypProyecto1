@@ -455,3 +455,33 @@ int crear_respuesta_sala(const char *operacion, const char *resultado, const cha
     json_object_put(objeto);
     return 1;
 }
+
+int crear_respuesta_operacion(const char *operacion, const char *resultado, const char *extra, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("RESPONSE"));
+    json_object_object_add(objeto, "operation", json_object_new_string(operacion));
+    json_object_object_add(objeto, "result", json_object_new_string(resultado));
+
+    if (extra != NULL) {
+        json_object_object_add(objeto, "extra", json_object_new_string(extra));
+    }
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}

@@ -321,6 +321,44 @@ int main() {
                                 i--;
                                 cliente_eliminado = 1;
                                 break;
+                            } else if (strcmp(tipo, "NEW_ROOM") == 0) {
+                                char nombre_sala[17];
+                                                        
+                                if (extraer_nombre_sala(clientes[i]->buffer, nombre_sala, sizeof(nombre_sala))) {                                                        
+                                    struct sala *sala_existente = g_hash_table_lookup(salas, nombre_sala);
+                                                        
+                                    if (sala_existente != NULL) {
+                                        char respuesta[256];
+                                    
+                                        if (crear_respuesta_operacion("NEW_ROOM", "ROOM_ALREADY_EXISTS", nombre_sala, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
+                                    } else {
+                                        struct sala *nueva_sala = crear_sala(nombre_sala);
+                                    
+                                        if (nueva_sala == NULL) {
+                                            fprintf(stderr, "Error al crear la sala\n");
+                                        } else {
+                                            if (sala_agregar_miembro(nueva_sala, clientes[i])) {
+                                                g_hash_table_insert(salas, g_strdup(nombre_sala), nueva_sala);                                                
+                                                char respuesta[256];
+                                                
+                                                if (crear_respuesta_operacion("NEW_ROOM", "SUCCESS", nombre_sala, respuesta, sizeof(respuesta))) {
+                                                    enviar_mensaje(clientes[i]->socket, respuesta);
+                                                }
+                                            } else {
+                                                destruir_sala(nueva_sala);
+                                                fprintf(stderr, "Error al agregar creador a la sala\n");
+                                            }
+                                        }
+                                    }
+                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
+                                }
                             
                             } else if (strcmp(tipo, "STATUS") == 0) {
                                 char status[7];
