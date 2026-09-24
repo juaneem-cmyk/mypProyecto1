@@ -11,8 +11,8 @@ struct sala *crear_sala(const char *nombre) {
 
     strncpy(sala->nombre, nombre, MAX_NOMBRE_SALA);
     sala->nombre[MAX_NOMBRE_SALA] = '\0';
-    sala->miembros = g_hash_table_new(g_str_hash, g_str_equal);
-    sala->invitados = g_hash_table_new(g_str_hash, g_str_equal);
+    sala->miembros = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    sala->invitados = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
     if (sala->miembros == NULL || sala->invitados == NULL) {
         g_hash_table_destroy(sala->miembros);
