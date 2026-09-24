@@ -379,12 +379,20 @@ int main() {
 
                                     if (destinatario == NULL) {
                                         char respuesta[256];
+
+                                        if (crear_respuesta_texto(nombre_destino, "NO_SUCH_USER", respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
                                     
                                     } else {
+                                        char respuesta[256];
                                     
+                                        if (crear_texto_desde(clientes[i]->nombre_usuario, texto, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(destinatario->socket, respuesta);
+                                        }
                                     }
                                     free(texto);
-                                
+                                    
                                 } else {
                                     rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
                                     i--;
