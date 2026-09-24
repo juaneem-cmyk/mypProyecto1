@@ -293,6 +293,34 @@ int crear_respuesta_identificacion(const char *nombre_usuario,const char *result
     return 1;
 }
 
+// Crea una respuesta JSON para la operación TEXT
+int crear_respuesta_texto(const char *nombre_usuario, const char *resultado, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("RESPONSE"));
+    json_object_object_add(objeto, "operation", json_object_new_string("TEXT"));
+    json_object_object_add(objeto, "result", json_object_new_string(resultado));
+    json_object_object_add(objeto, "extra", json_object_new_string(nombre_usuario));
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}
+
 // Crea el mensaje JSON que se enviará al destinatario de un mensaje privado.
 int crear_texto_desde(const char *nombre_usuario, const char *texto, char *respuesta, size_t respuesta_size) {
     struct json_object *objeto;

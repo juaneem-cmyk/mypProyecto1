@@ -346,14 +346,13 @@ int main() {
                                     } else {
                                         nuevo_estado = BUSY;
                                     }
-                            
-                                    // Solo notifico si realmente cambió el estado
+
                                     if (clientes[i]->estado != nuevo_estado) {
                                         clientes[i]->estado = nuevo_estado;
                                         char respuesta[256];
+                                    
                                         if (crear_nuevo_status(clientes[i]->nombre_usuario, status, respuesta, sizeof(respuesta))) {
-                                                
-                                            // Notifico el nuevo estado a los demás clientes
+                                                            
                                             for (int j = 1; j < cantidad; j++) {
                                                 if (j != i && clientes[j]->identificado) {
                                                     enviar_mensaje(clientes[j]->socket, respuesta);
@@ -361,6 +360,12 @@ int main() {
                                             }
                                         }
                                     }
+                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
                                 }
                             }
 
@@ -371,21 +376,20 @@ int main() {
 
                                 if (extraer_texto(clientes[i]->buffer, nombre_destino, sizeof(nombre_destino), &texto)) {
                                     struct cliente *destinatario = g_hash_table_lookup(usuarios, nombre_destino);
-                                                
+
                                     if (destinatario == NULL) {
                                         char respuesta[256];
                                     
-                                        if (crear_respuesta_invalida("NO_SUCH_USER", respuesta, sizeof(respuesta))) {
-                                            enviar_mensaje(clientes[i]->socket, respuesta);
-                                        }
                                     } else {
-                                        char respuesta[256];
                                     
-                                        if (crear_texto_desde(clientes[i]->nombre_usuario, texto, respuesta, sizeof(respuesta))) {
-                                            enviar_mensaje(destinatario->socket, respuesta);
-                                        }
                                     }
                                     free(texto);
+                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
                                 }
                             }
                             // Verifico si el cliente solicitó la lista de usuarios
@@ -422,7 +426,17 @@ int main() {
                                 }
                                 free(nombres);
                                 free(estados);
+                            } else {
+                                rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                i--;
+                                cliente_eliminado = 1;
+                                break;
                             }
+                        } else {
+                            rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                            i--;
+                            cliente_eliminado = 1;
+                            break;
                         }
                         int restante = clientes[i]->usados - (longitud_mensaje + 1);
                         memmove(clientes[i]->buffer, fin_mensaje + 1, restante);
