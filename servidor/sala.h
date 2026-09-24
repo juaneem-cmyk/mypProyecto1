@@ -16,6 +16,10 @@ struct sala {
 };
 
 struct sala *crear_sala(const char *nombre);
+int sala_agregar_miembro(struct sala *sala, struct cliente *cliente);
+int sala_agregar_invitado(struct sala *sala, struct cliente *cliente);
+int sala_es_miembro(struct sala *sala, const char *nombre_usuario);
+int sala_es_invitado(struct sala *sala, const char *nombre_usuario);
 void destruir_sala(gpointer dato);
 
 #endif

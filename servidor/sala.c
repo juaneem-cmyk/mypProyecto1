@@ -33,3 +33,29 @@ void destruir_sala(gpointer dato) {
     g_hash_table_destroy(sala->invitados);
     free(sala);
 }
+
+int sala_agregar_miembro(struct sala *sala, struct cliente *cliente) {
+    if (sala == NULL || cliente == NULL) {
+        return 0;
+    }
+
+    g_hash_table_insert(sala->miembros, g_strdup(cliente->nombre_usuario), cliente);
+    return 1;
+}
+
+int sala_agregar_invitado(struct sala *sala, struct cliente *cliente) {
+    if (sala == NULL || cliente == NULL) {
+        return 0;
+    }
+
+    g_hash_table_insert(sala->invitados, g_strdup(cliente->nombre_usuario), cliente);
+    return 1;
+}
+
+int sala_es_miembro(struct sala *sala, const char *nombre_usuario) {
+    return g_hash_table_contains(sala->miembros, nombre_usuario);
+}
+
+int sala_es_invitado(struct sala *sala, const char *nombre_usuario) {
+    return g_hash_table_contains(sala->invitados, nombre_usuario);
+}
