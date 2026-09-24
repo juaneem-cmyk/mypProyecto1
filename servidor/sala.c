@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sala.h"
+#include "cliente.h"
 
 struct sala *crear_sala(const char *nombre) {
     struct sala *sala = malloc(sizeof(struct sala));

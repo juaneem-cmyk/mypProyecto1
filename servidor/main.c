@@ -10,6 +10,7 @@
 #include <signal.h>
 #include "Protocolo.h"
 #include "sala.h"
+#include "cliente.h"
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
@@ -32,10 +33,6 @@ void enviar_mensaje (int socket, const char *mensaje) {
     send(socket, mensaje, strlen(mensaje), 0);
 }
 
-enum estado_usuario {
-    ACTIVE, AWAY, BUSY
- };
-
  // Convierte el estado del usuario a texto para enviarlo mediante el protocolo.
 const char *estado_a_texto(enum estado_usuario estado) {
     switch (estado) {
@@ -49,16 +46,6 @@ const char *estado_a_texto(enum estado_usuario estado) {
             return "ACTIVE";
     }
 }
-
-struct cliente {
-    int socket;
-    size_t usados;
-    size_t capacidad_buffer;
-    char *buffer;
-    char nombre_usuario[9];
-    int identificado;
-    enum estado_usuario estado;
-};
 
 // Elimina a un cliente y libera la memoria
 void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, int *cantidad, int indice, GHashTable *usuarios){
