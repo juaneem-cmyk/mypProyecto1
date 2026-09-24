@@ -60,15 +60,15 @@ struct cliente {
 };
 
 // Elimina a un cliente y libera la memoria
-void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantidad, int indice, GHashTable *usuarios){
-    if (clientes[indice].identificado) {
-    g_hash_table_remove(usuarios, clientes[indice].nombre_usuario);
+void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, int *cantidad, int indice, GHashTable *usuarios){
+    if (clientes[indice]->identificado) {
+        g_hash_table_remove(usuarios, clientes[indice]->nombre_usuario);
     }
     close(fds[indice].fd);
-    free(clientes[indice].buffer);
+    free(clientes[indice]->buffer);
+    free(clientes[indice]);
 
-    // Acomodo los clientes que están después del eliminado
-    for (int j = indice; j < *cantidad - 1; j++){
+    for (int j = indice; j < *cantidad - 1; j++) {
         fds[j] = fds[j + 1];
         clientes[j] = clientes[j + 1];
     }
@@ -112,7 +112,7 @@ int main() {
     int capacidad = 1;
     int cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
-    struct cliente *clientes = malloc(sizeof(struct cliente) * capacidad);
+    struct cliente **clientes = malloc(sizeof(struct cliente *) * capacidad);
     GHashTable *usuarios = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
     if (usuarios == NULL){
@@ -170,7 +170,7 @@ int main() {
                     continue;
                 }
                 fds = temporal;
-                struct cliente *temporal_clientes = realloc(clientes, sizeof(struct cliente) * capacidad);
+                struct cliente **temporal_clientes = realloc(clientes, sizeof(struct cliente *) * capacidad);
                 
                 // Verifico si la memoria se amplió correctamente
                 if (temporal_clientes == NULL) {
@@ -184,19 +184,27 @@ int main() {
             fds[cantidad].fd = nuevo_socket; // Agrego el nuevo socket al arreglo de fds
             fds[cantidad].events = POLLIN; // Configuro el evento de lectura para el nuevo socket
             fds[cantidad].revents = 0; // Inicializo los eventos de revents en 0
-            clientes[cantidad].socket = nuevo_socket; // Inicializo el socket del cliente
-            clientes[cantidad].estado = ACTIVE; // Inicializo al cliente como activo
-            clientes[cantidad].usados = 0; // Inicializo la cantidad de bytes usados en el buffer del cliente
-            clientes[cantidad].nombre_usuario[0] = '\0'; // Inicializo el nombre de usuario del cliente
-            clientes[cantidad].identificado = 0; // Inicializo el estado de identificación del cliente
-            clientes[cantidad].capacidad_buffer = BUFFER_SIZE; // Inicializo la capacidad del buffer para recibir los mensajes del cliente
-            clientes[cantidad].buffer = malloc(BUFFER_SIZE); // Reservo memoria para el buffer inicial del cliente
-            // Verifico que la reserva de memoria se haya realizado correctamente.
-            if (clientes[cantidad].buffer == NULL){
-                perror("Error al reservar el buffer del cliente");
+            clientes[cantidad] = malloc(sizeof(struct cliente));
+
+            if (clientes[cantidad] == NULL) {
+                perror("Error al reservar memoria para el cliente");
                 close(nuevo_socket);
                 continue;
-            } 
+            }
+            clientes[cantidad]->socket = nuevo_socket;
+            clientes[cantidad]->estado = ACTIVE;
+            clientes[cantidad]->usados = 0;
+            clientes[cantidad]->nombre_usuario[0] = '\0';
+            clientes[cantidad]->identificado = 0;
+            clientes[cantidad]->capacidad_buffer = BUFFER_SIZE;
+            clientes[cantidad]->buffer = malloc(BUFFER_SIZE);
+
+            if (clientes[cantidad]->buffer == NULL) {
+                perror("Error al reservar el buffer del cliente");
+                free(clientes[cantidad]);
+                close(nuevo_socket);
+                continue;
+            }
             cantidad++; // Incremento la cantidad de clientes conectados
         }
         
@@ -215,11 +223,11 @@ int main() {
                     i--;
                 } else {
                     // Calculo el espacio que necesito para almacenar los datos recibidos
-                    size_t espacio_necesario = clientes[i].usados + bytes_leidos + 1;
+                    size_t espacio_necesario = clientes[i]->usados + bytes_leidos + 1;
 
                     //Si no tiene espacio, lo amplio
-                    if (espacio_necesario > clientes[i].capacidad_buffer) {
-                        size_t nueva_capacidad = clientes[i].capacidad_buffer * 2;
+                    if (espacio_necesario > clientes[i]->capacidad_buffer) {
+                        size_t nueva_capacidad = clientes[i]->capacidad_buffer * 2;
 
                         // Duplico la capacidad para que quepan los datos recibidos
                         while (nueva_capacidad < espacio_necesario) {
@@ -229,7 +237,7 @@ int main() {
                         if (nueva_capacidad > MAX_MENSAJE + BUFFER_SIZE + 1) {
                             nueva_capacidad = MAX_MENSAJE + BUFFER_SIZE + 1;
                         }
-                        char *nuevo_buffer = realloc(clientes[i].buffer, nueva_capacidad);
+                        char *nuevo_buffer = realloc(clientes[i]->buffer, nueva_capacidad);
 
                         if (nuevo_buffer == NULL) {
                             perror("Error al ampliar el buffer del cliente");
@@ -237,20 +245,20 @@ int main() {
                             i--;
                             continue;
                         }
-                        clientes[i].buffer = nuevo_buffer;
-                        clientes[i].capacidad_buffer = nueva_capacidad;
+                        clientes[i]->buffer = nuevo_buffer;
+                        clientes[i]->capacidad_buffer = nueva_capacidad;
                     }
                     // Copio los datos recibidos al buffer del cliente
-                    memcpy(clientes[i].buffer + clientes[i].usados, lectura, bytes_leidos);
-                    clientes[i].usados += bytes_leidos; // Actualizo los bytes utilizados
-                    clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                    memcpy(clientes[i]->buffer + clientes[i]->usados, lectura, bytes_leidos);
+                    clientes[i]->usados += bytes_leidos; // Actualizo los bytes utilizados
+                    clientes[i]->buffer[clientes[i]->usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
                 
                     char *fin_mensaje;
                     int cliente_eliminado = 0;
                     
                     // Procesar todos los mensajes completos en el buffer del cliente
-                    while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
-                        int longitud_mensaje = fin_mensaje - clientes[i].buffer;
+                    while ((fin_mensaje = strchr(clientes[i]->buffer, '\n')) != NULL) {
+                        int longitud_mensaje = fin_mensaje - clientes[i]->buffer;
                         
                         // Verifico que el mensaje no supere el tamaño máximo permitido
                         if (longitud_mensaje > MAX_MENSAJE) {
@@ -260,24 +268,24 @@ int main() {
                             cliente_eliminado = 1;
                             break;
                         }
-                        printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
+                        printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i]->buffer);
                         
                         // Extraer y validar la identificación del cliente desde el mensaje JSON
                         char tipo[32];
 
-                        if (extraer_tipo(clientes[i].buffer, tipo, sizeof(tipo))) {
+                        if (extraer_tipo(clientes[i]->buffer, tipo, sizeof(tipo))) {
                         
                             if (strcmp(tipo, "IDENTIFY") == 0) {
                                 char nombre_usuario[9];
                             
-                                if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
+                                if (extraer_identificacion(clientes[i]->buffer, nombre_usuario, sizeof(nombre_usuario))) {
                                     char respuesta[256];
                                         
                                     // Verifica que el nombre de usuario no este repetido
                                     if (g_hash_table_contains(usuarios, nombre_usuario)) {
                                     
                                         if (crear_respuesta_identificacion(nombre_usuario, "USER_ALREADY_EXISTS", respuesta, sizeof(respuesta))) {
-                                            enviar_mensaje(clientes[i].socket, respuesta);
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
                                         }
                                         printf("Cliente desconectado: usuario repetido (%s)\n", nombre_usuario);
                                         eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
@@ -286,25 +294,25 @@ int main() {
                                         break;
                                         
                                     } else {
-                                        strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
-                                        clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0';
-                                        clientes[i].identificado = 1;
-                                        printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
-                                        g_hash_table_insert(usuarios, g_strdup(clientes[i].nombre_usuario), GINT_TO_POINTER(clientes[i].socket));
+                                        strncpy(clientes[i]->nombre_usuario, nombre_usuario, sizeof(clientes[i]->nombre_usuario) - 1);
+                                        clientes[i]->nombre_usuario[sizeof(clientes[i]->nombre_usuario) - 1] = '\0';
+                                        clientes[i]->identificado = 1;
+                                        printf("Cliente identificado como: %s\n", clientes[i]->nombre_usuario);
+                                        g_hash_table_insert(usuarios, g_strdup(clientes[i]->nombre_usuario), clientes[i]);
                                     
-                                        if (crear_respuesta_identificacion(clientes[i].nombre_usuario, "SUCCESS", respuesta, sizeof(respuesta))) {
-                                            enviar_mensaje(clientes[i].socket, respuesta);
+                                        if (crear_respuesta_identificacion(clientes[i]->nombre_usuario, "SUCCESS", respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
                                         } else {
                                             fprintf(stderr, "Error al crear la respuesta de identificación\n");
                                         }
                                     }
                                 }
                             // Si el usuario no se identifica
-                            } else if (!clientes[i].identificado) {
+                            } else if (!clientes[i]->identificado) {
                                 char respuesta[256];
 
                                 if (crear_respuesta_invalida("NOT_IDENTIFIED", respuesta, sizeof(respuesta))) {
-                                    enviar_mensaje(clientes[i].socket, respuesta);
+                                    enviar_mensaje(clientes[i]->socket, respuesta);
                                 }
                                 printf("Cliente desconectado: no estaba identificado\n");
                                 eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
@@ -315,7 +323,7 @@ int main() {
                             } else if (strcmp(tipo, "STATUS") == 0) {
                                 char status[7];
                                 // Extraigo y valido el estado solicitado
-                                if (extraer_status(clientes[i].buffer, status, sizeof(status))) {
+                                if (extraer_status(clientes[i]->buffer, status, sizeof(status))) {
                                     enum estado_usuario nuevo_estado;
 
                                     if (strcmp(status, "ACTIVE") == 0) {
@@ -327,15 +335,15 @@ int main() {
                                     }
                             
                                     // Solo notifico si realmente cambió el estado
-                                    if (clientes[i].estado != nuevo_estado) {
-                                        clientes[i].estado = nuevo_estado;
+                                    if (clientes[i]->estado != nuevo_estado) {
+                                        clientes[i]->estado = nuevo_estado;
                                         char respuesta[256];
-                                        if (crear_nuevo_status(clientes[i].nombre_usuario, status, respuesta, sizeof(respuesta))) {
+                                        if (crear_nuevo_status(clientes[i]->nombre_usuario, status, respuesta, sizeof(respuesta))) {
                                                 
                                             // Notifico el nuevo estado a los demás clientes
                                             for (int j = 1; j < cantidad; j++) {
-                                                if (j != i && clientes[j].identificado) {
-                                                    enviar_mensaje(clientes[j].socket, respuesta);
+                                                if (j != i && clientes[j]->identificado) {
+                                                    enviar_mensaje(clientes[j]->socket, respuesta);
                                                 }
                                             }
                                         }
@@ -348,16 +356,16 @@ int main() {
                                 char nombre_destino[9];
                                 char *texto = NULL;
 
-                                if (extraer_texto(clientes[i].buffer, nombre_destino, sizeof(nombre_destino), &texto)) {
-                                    gpointer valor = g_hash_table_lookup(usuarios, nombre_destino);
-                                
-                                    if (valor == NULL) {
+                                if (extraer_texto(clientes[i]->buffer, nombre_destino, sizeof(nombre_destino), &texto)) {
+                                    struct cliente *destinatario = g_hash_table_lookup(usuarios, nombre_destino);
+
+                                    if (destinatario == NULL) {
                                         printf("El usuario %s no existe\n", nombre_destino);
                                     } else {
-                                        int socket_destino = GPOINTER_TO_INT(valor);
                                         char respuesta[256];
-                                        if (crear_texto_desde(clientes[i].nombre_usuario, texto, respuesta, sizeof(respuesta))) {
-                                            enviar_mensaje(socket_destino, respuesta);
+                                    
+                                        if (crear_texto_desde(clientes[i]->nombre_usuario, texto, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(destinatario->socket, respuesta);
                                         }
                                     }
                                     free(texto);
@@ -369,7 +377,7 @@ int main() {
 
                                 // Cuento los clientes que ya se identificaron.
                                 for (int j = 1; j < cantidad; j++) {
-                                    if (clientes[j].identificado) {
+                                    if (clientes[j]->identificado) {
                                         cantidad_usuarios++;
                                     }
                                 }
@@ -384,9 +392,9 @@ int main() {
                                 size_t indice_usuario = 0;
                             
                                 for (int j = 1; j < cantidad; j++) {
-                                    if (clientes[j].identificado) {
-                                        nombres[indice_usuario] = clientes[j].nombre_usuario;
-                                        estados[indice_usuario] = estado_a_texto(clientes[j].estado);
+                                    if (clientes[j]->identificado) {
+                                        nombres[indice_usuario] = clientes[j]->nombre_usuario;
+                                        estados[indice_usuario] = estado_a_texto(clientes[j]->estado);
                                         indice_usuario++;
                                     }
                                 }
@@ -395,7 +403,7 @@ int main() {
                                 if (respuesta != NULL) {
                                 
                                     if (crear_lista_usuarios(nombres, estados, cantidad_usuarios, respuesta, MAX_MENSAJE + 2)) {
-                                        enviar_mensaje(clientes[i].socket, respuesta);
+                                        enviar_mensaje(clientes[i]->socket, respuesta);
                                     }
                                     free(respuesta);
                                 }
@@ -404,17 +412,17 @@ int main() {
                             }
                         }
                         
-                        int restante = clientes[i].usados - (longitud_mensaje + 1);
-                        memmove(clientes[i].buffer, fin_mensaje + 1, restante);
-                        clientes[i].usados = restante;
-                        clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                        int restante = clientes[i]->usados - (longitud_mensaje + 1);
+                        memmove(clientes[i]->buffer, fin_mensaje + 1, restante);
+                        clientes[i]->usados = restante;
+                        clientes[i]->buffer[clientes[i]->usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
                     }
                     if (cliente_eliminado){
                         continue;
                     }
 
                     // Verifico si el mensaje incompleto ya superó el tamaño máximo permitido
-                    if (clientes[i].usados > MAX_MENSAJE) {
+                    if (clientes[i]->usados > MAX_MENSAJE) {
                         fprintf(stderr, "Mensaje demasiado grande. Cliente desconectado.\n");
                         eliminar_cliente(fds, clientes, &cantidad, i, usuarios);
                         i--;
@@ -427,7 +435,8 @@ int main() {
     // Cierro todos los sockets y libero la memoria
         for (int i = 1; i < cantidad; i++) {
             close(fds[i].fd);
-            free(clientes[i].buffer);
+            free(clientes[i]->buffer);
+            free(clientes[i]);
         }
         close (servidor_socket);
         g_hash_table_destroy(usuarios);
