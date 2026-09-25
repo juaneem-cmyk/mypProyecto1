@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <cctype>
+#include <vector>
 #include "TCPCliente.h"
 #include "Controlador.h"
 
@@ -68,6 +69,54 @@ int main() {
       controlador.crear_nueva_sala(nombre_sala);
       cliente.enviar_mensaje(mensaje);
     }
+
+    // Solicita invitar uno o varios usuarios a una sala
+    else if (comando == "INVITE") {
+      printf("Ingrese el nombre de la sala: ");
+      std::string nombre_sala;
+      std::getline(std::cin, nombre_sala);
+
+      if (nombre_sala.empty() || nombre_sala.size() > 16) {
+          printf("Nombre de sala no válido.\n");
+          continue;
+      }
+      printf("¿Cuántos usuarios desea invitar?: ");
+      std::string entrada_cantidad;
+      std::getline(std::cin, entrada_cantidad);
+      size_t cantidad_usuarios;
+
+      try {
+          cantidad_usuarios = std::stoul(entrada_cantidad);
+      } catch (...) {
+          printf("Cantidad no válida.\n");
+          continue;
+      }
+
+      if (cantidad_usuarios == 0) {
+          printf("Debe invitar al menos a un usuario.\n");
+          continue;
+      }
+      std::vector<std::string> usuarios;
+      // Solicita el nombre de cada usuario que será invitado
+      for (size_t i = 0; i < cantidad_usuarios; i++) {
+          printf("Ingrese el usuario %zu: ", i + 1);
+          std::string usuario;
+          std::getline(std::cin, usuario);
+
+          if (usuario.empty() || usuario.size() > 8) {
+              printf("Nombre de usuario no válido.\n");
+              usuarios.clear();
+              break;
+          }
+          usuarios.push_back(usuario);
+      }
+
+      if (usuarios.size() != cantidad_usuarios) {
+          continue;
+      }
+      std::string mensaje = controlador.crear_invitacion(nombre_sala, usuarios);
+      cliente.enviar_mensaje(mensaje);
+  }
 
     // Cambia el estado del usuario
     else if (comando == "STATUS") {
