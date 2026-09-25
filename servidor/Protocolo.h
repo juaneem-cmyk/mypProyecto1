@@ -15,6 +15,10 @@ int extraer_nombre_sala(const char *mensaje, char *nombre_sala, size_t sala_size
 
 int extraer_invitacion(const char *mensaje, char *nombre_sala, size_t sala_size, char ***usuarios, size_t *cantidad_usuarios);
 
+int extraer_union_sala(const char *mensaje, char *nombre_sala, size_t sala_size);
+
+int crear_usuario_unido(const char *nombre_usuario, const char *nombre_sala, char *respuesta, size_t respuesta_size);
+
 int crear_respuesta_identificacion(const char *nombre_usuario, const char *resultado, char *respuesta, size_t respuesta_size);
 
 int crear_respuesta_invalida(const char *resultado, char *respuesta, size_t respuesta_size);
