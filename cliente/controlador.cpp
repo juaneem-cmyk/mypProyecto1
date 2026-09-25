@@ -371,13 +371,5 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
             printf("El usuario %s ahora está %s.\n", json_object_get_string(usuario), json_object_get_string(estado));
         }
     }
-    // Informa que un usuario se desconectó
-    if (strcmp(json_object_get_string(tipo), "DISCONNECTED") == 0) {
-    json_object *usuario;
-
-        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_is_type(usuario, json_type_string)) {
-            printf("El usuario %s se desconectó.\n", json_object_get_string(usuario));
-        }
-    }
     json_object_put(objeto); // Liberar memoria del objeto JSON
 }
