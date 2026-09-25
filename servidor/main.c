@@ -63,8 +63,8 @@ void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, size_t *can
     (*cantidad)--;
 }
 
-// Envía una respuesta de mensaje inválido y desconecta al cliente.
-void rechazar_mensaje_invalido(struct pollfd *fds, struct cliente **clientes, int *cantidad, int indice, GHashTable *usuarios) {
+// Envía una respuesta de mensaje inválido y desconecta al cliente
+void rechazar_mensaje_invalido(struct pollfd *fds, struct cliente **clientes, size_t *cantidad, int indice, GHashTable *usuarios) {    
     char respuesta[256];
 
     if (crear_respuesta_invalida("INVALID", respuesta, sizeof(respuesta))) {
@@ -109,7 +109,7 @@ int main() {
     /* Configuro el polling para manejar múltiples clientes 
     https://www.ibm.com/docs/en/i/7.4.0?topic=designs-using-poll-instead-select */
     int capacidad = 1;
-    int cantidad = 1;
+    size_t cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
     struct cliente **clientes = malloc(sizeof(struct cliente *) * capacidad);
     GHashTable *usuarios = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
@@ -396,7 +396,36 @@ int main() {
                                                 break;
                                             }
                                         }
-                                    
+                                        if (!error) {                                            
+                                            // Todos existen, entonces agregamos únicamente a quienes todavía no son miembros ni invitados
+                                            for (size_t j = 0; j < cantidad_usuarios; j++) {
+                                                struct cliente *invitado = g_hash_table_lookup(usuarios, nombres_usuarios[j]);
+                                            
+                                                if (sala_es_miembro(sala, nombres_usuarios[j]) ||
+                                                    sala_es_invitado(sala, nombres_usuarios[j])) {
+                                                    continue;
+                                                }                                            
+                                                sala_agregar_invitado(sala, invitado);                                            
+                                                char respuesta[256];
+                                            
+                                                if (crear_invitacion(invitado->nombre_usuario, nombre_sala, respuesta, sizeof(respuesta))) {
+                                                    enviar_mensaje(invitado->socket, respuesta);
+                                                }
+                                            }
+                                        }
+                                    }                                
+                                    // Liberamos todas las cadenas y posteriormente el arreglo que las contiene                                     
+                                    for (size_t j = 0; j < cantidad_usuarios; j++) {
+                                        free(nombres_usuarios[j]);
+                                    }                                
+                                    free(nombres_usuarios);
+                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
+                                }
                             } 
                             // Extraigo y valido el estado solicitado
                             else if (strcmp(tipo, "STATUS") == 0) {
@@ -424,8 +453,7 @@ int main() {
                                                 }
                                             }
                                         }
-                                    }
-                                
+                                    }                                
                                 } else {
                                     rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
                                     i--;
