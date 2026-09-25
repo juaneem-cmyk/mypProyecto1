@@ -757,6 +757,32 @@ int main() {
                                     break;
                                 }
                             }
+                            // Procesa un mensaje público y lo envía a los demás usuarios
+                            else if (strcmp(tipo, "PUBLIC_TEXT") == 0) {
+                                char *texto = NULL;
+
+                                if (extraer_texto_publico(clientes[i]->buffer, &texto)) {
+                                    char *respuesta = malloc(MAX_MENSAJE + 2);
+                                
+                                    if (respuesta != NULL) {
+                                        if (crear_texto_publico_desde(clientes[i]->nombre_usuario, texto, respuesta, MAX_MENSAJE + 2)) {
+                                            // Envío el mensaje a todos excepto al emisor
+                                            for (int j = 1; j < cantidad; j++) {
+                                                if (j != i && clientes[j]->identificado) {
+                                                    enviar_mensaje(clientes[j]->socket, respuesta);
+                                                }
+                                            }
+                                        }                                    
+                                        free(respuesta);
+                                    }                                
+                                    free(texto);                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
+                                }
+                            }
                             // Verifico si el cliente solicitó la lista de usuarios
                             else if (strcmp(tipo, "USERS") == 0) {
                                 size_t cantidad_usuarios = g_hash_table_size(usuarios);
