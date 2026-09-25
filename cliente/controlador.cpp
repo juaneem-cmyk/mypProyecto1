@@ -149,13 +149,26 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         return;
     }
     json_object *tipo;
+
     if (!json_object_object_get_ex(objeto, "type", &tipo)) {
         fprintf(stderr, "Error: No se encontró el campo 'type' en el mensaje JSON\n");
         json_object_put(objeto);
         return;
     }
-
     printf("Tipo de mensaje recibido: %s\n", json_object_get_string(tipo));
+    // Procesa una invitación recibida para una sala
+    if (strcmp(json_object_get_string(tipo), "INVITATION") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) &&
+            json_object_object_get_ex(objeto, "roomname", &sala)) {
+
+            printf("Has recibido una invitación de %s para la sala %s.\n",
+                   json_object_get_string(usuario),
+                   json_object_get_string(sala));
+        }
+    }
     
     // Procesar el mensaje según su tipo
     if (strcmp(json_object_get_string(tipo), "RESPONSE") == 0) {
