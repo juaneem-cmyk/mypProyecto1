@@ -33,7 +33,7 @@ void enviar_mensaje (int socket, const char *mensaje) {
     send(socket, mensaje, strlen(mensaje), 0);
 }
 
- // Convierte el estado del usuario a texto para enviarlo mediante el protocolo.
+ // Convierte el estado del usuario a texto para enviarlo mediante el protocolo
 const char *estado_a_texto(enum estado_usuario estado) {
     switch (estado) {
         case ACTIVE:
@@ -53,8 +53,7 @@ void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, size_t *can
         g_hash_table_remove(usuarios, clientes[indice]->nombre_usuario);
     }
     close(fds[indice].fd);
-    free(clientes[indice]->buffer);
-    free(clientes[indice]);
+    destruir_cliente(clientes[indice]);
 
     for (int j = indice; j < *cantidad - 1; j++) {
         fds[j] = fds[j + 1];
@@ -184,24 +183,9 @@ int main() {
             fds[cantidad].fd = nuevo_socket; // Agrego el nuevo socket al arreglo de fds
             fds[cantidad].events = POLLIN; // Configuro el evento de lectura para el nuevo socket
             fds[cantidad].revents = 0; // Inicializo los eventos de revents en 0
-            clientes[cantidad] = malloc(sizeof(struct cliente));
+            clientes[cantidad] = crear_cliente(nuevo_socket, BUFFER_SIZE);
 
             if (clientes[cantidad] == NULL) {
-                perror("Error al reservar memoria para el cliente");
-                close(nuevo_socket);
-                continue;
-            }
-            clientes[cantidad]->socket = nuevo_socket;
-            clientes[cantidad]->estado = ACTIVE;
-            clientes[cantidad]->usados = 0;
-            clientes[cantidad]->nombre_usuario[0] = '\0';
-            clientes[cantidad]->identificado = 0;
-            clientes[cantidad]->capacidad_buffer = BUFFER_SIZE;
-            clientes[cantidad]->buffer = malloc(BUFFER_SIZE);
-
-            if (clientes[cantidad]->buffer == NULL) {
-                perror("Error al reservar el buffer del cliente");
-                free(clientes[cantidad]);
                 close(nuevo_socket);
                 continue;
             }
@@ -862,8 +846,7 @@ int main() {
     // Cierro todos los sockets y libero la memoria
         for (int i = 1; i < cantidad; i++) {
             close(fds[i].fd);
-            free(clientes[i]->buffer);
-            free(clientes[i]);
+            destruir_cliente(clientes[i]);
         }
         close (servidor_socket);
         g_hash_table_destroy(salas);

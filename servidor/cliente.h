@@ -17,4 +17,7 @@ struct cliente {
     enum estado_usuario estado;
 };
 
+struct cliente *crear_cliente(int socket, size_t capacidad_buffer);
+void destruir_cliente(struct cliente *cliente);
+
 #endif
