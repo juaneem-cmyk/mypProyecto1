@@ -129,8 +129,7 @@ std::string Controlador::crear_invitacion(const std::string& nombre_sala, const 
 }
 
 // Crea el mensaje para solicitar los usuarios de una sala
-std::string Controlador::crear_usuarios_sala(
-    const std::string& nombre_sala) {
+std::string Controlador::crear_usuarios_sala(const std::string& nombre_sala) {
     struct json_object *objeto = json_object_new_object();
 
     if (objeto == nullptr) {
@@ -144,9 +143,24 @@ std::string Controlador::crear_usuarios_sala(
     return mensaje;
 }
 
+// Crea el mensaje JSON para enviar texto a una sala
+std::string Controlador::crear_texto_sala(const std::string& nombre_sala, const std::string& texto) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("ROOM_TEXT"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    json_object_object_add(objeto, "text", json_object_new_string(texto.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Crea el mensaje para solicitar unirse a una sala
-std::string Controlador::crear_unirse_sala(
-    const std::string& nombre_sala) {
+std::string Controlador::crear_unirse_sala(const std::string& nombre_sala) {
     struct json_object *objeto = json_object_new_object();
 
     if (objeto == nullptr) {
@@ -268,6 +282,18 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
             json_object_object_foreach(lista_usuarios, nombre, estado) {
                 printf("- %s [%s]\n", nombre, json_object_get_string(estado));
             }
+        }
+    }
+    // Procesa un mensaje recibido desde una sala
+    if (strcmp(json_object_get_string(tipo), "ROOM_TEXT_FROM") == 0) {
+        json_object *usuario;
+        json_object *sala;
+        json_object *texto;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala) &&
+            json_object_object_get_ex(objeto, "text", &texto) && json_object_is_type(usuario, json_type_string) &&
+            json_object_is_type(sala, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("\nMensaje de %s en la sala %s: %s\n", json_object_get_string(usuario), json_object_get_string(sala), json_object_get_string(texto));
         }
     }
     json_object_put(objeto); // Liberar memoria del objeto JSON
