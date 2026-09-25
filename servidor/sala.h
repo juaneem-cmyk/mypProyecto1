@@ -21,6 +21,8 @@ int sala_agregar_invitado(struct sala *sala, struct cliente *cliente);
 int sala_unir_miembro(struct sala *sala, struct cliente *cliente);
 int sala_es_miembro(struct sala *sala, const char *nombre_usuario);
 int sala_es_invitado(struct sala *sala, const char *nombre_usuario);
+int sala_eliminar_miembro(struct sala *sala, const char *nombre_usuario);
+int sala_sin_miembros(struct sala *sala);
 void destruir_sala(gpointer dato);
 
 #endif

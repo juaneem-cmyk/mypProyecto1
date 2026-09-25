@@ -66,6 +66,20 @@ int sala_unir_miembro(struct sala *sala, struct cliente *cliente) {
     g_hash_table_remove(sala->invitados, cliente->nombre_usuario);
     return sala_agregar_miembro(sala, cliente);
 }
+// Elimina un usuario de los miembros de la sala
+int sala_eliminar_miembro(struct sala *sala, const char *nombre_usuario) {
+    if (sala == NULL || nombre_usuario == NULL) {
+        return 0;
+    }
+    return g_hash_table_remove(sala->miembros, nombre_usuario);
+}
+// Verifica si una sala no tiene miembros
+int sala_sin_miembros(struct sala *sala) {
+    if (sala == NULL) {
+        return 1;
+    }
+    return g_hash_table_size(sala->miembros) == 0;
+}
 
 // Verifica si un usuario ya pertenece a la sala
 int sala_es_miembro(struct sala *sala, const char *nombre_usuario) {
