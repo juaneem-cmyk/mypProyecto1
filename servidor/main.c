@@ -48,7 +48,7 @@ const char *estado_a_texto(enum estado_usuario estado) {
 }
 
 // Elimina a un cliente y libera la memoria
-void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, int *cantidad, int indice, GHashTable *usuarios){
+void eliminar_cliente(struct pollfd *fds, struct cliente **clientes, size_t *cantidad, size_t indice, GHashTable *usuarios){
     if (clientes[indice]->identificado) {
         g_hash_table_remove(usuarios, clientes[indice]->nombre_usuario);
     }
@@ -360,9 +360,47 @@ int main() {
                                     break;
                                 }
                             
-                            } else if (strcmp(tipo, "STATUS") == 0) {
+                            } 
+                            // Procesa las invitaciones de usuarios a una sala
+                            else if (strcmp(tipo, "INVITE") == 0) {
+                                char nombre_sala[17];
+                                char **nombres_usuarios = NULL;
+                                size_t cantidad_usuarios = 0;
+                            
+                                if (extraer_invitacion(clientes[i]->buffer, nombre_sala, sizeof(nombre_sala), &nombres_usuarios, &cantidad_usuarios)) {                                                
+                                    struct sala *sala = g_hash_table_lookup(salas, nombre_sala);
+                                                    
+                                    if (sala == NULL) {
+                                        char respuesta[256];
+                                    
+                                        if (crear_respuesta_operacion("INVITE", "NO_SUCH_ROOM", nombre_sala, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
+                                    
+                                    } else if (!sala_es_miembro(sala, clientes[i]->nombre_usuario)) {                                                                
+                                        printf("El usuario %s no pertenece a la sala %s\n", clientes[i]->nombre_usuario, nombre_sala);
+
+                                    } else {
+                                        int error = 0;                            
+                                        // Verificamos que todos los usuarios existan
+                                        for (size_t j = 0; j < cantidad_usuarios; j++) {
+                                            struct cliente *invitado = g_hash_table_lookup(usuarios, nombres_usuarios[j]);
+                                        
+                                            if (invitado == NULL) {
+                                                char respuesta[256];
+                                            
+                                                if (crear_respuesta_operacion("INVITE", "NO_SUCH_USER", nombres_usuarios[j], respuesta, sizeof(respuesta))) {
+                                                    enviar_mensaje(clientes[i]->socket, respuesta);
+                                                }                                            
+                                                error = 1;
+                                                break;
+                                            }
+                                        }
+                                    
+                            } 
+                            // Extraigo y valido el estado solicitado
+                            else if (strcmp(tipo, "STATUS") == 0) {
                                 char status[7];
-                                // Extraigo y valido el estado solicitado
                                 if (extraer_status(clientes[i]->buffer, status, sizeof(status))) {
                                     enum estado_usuario nuevo_estado;
 
