@@ -98,7 +98,6 @@ std::string Controlador::crear_nueva_sala(const std::string& nombre_sala) {
     json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
     const char *mensaje_json = json_object_to_json_string(objeto);
     std::string mensaje(mensaje_json);
-    mensaje += '\n';
     json_object_put(objeto);
     return mensaje;
 }
