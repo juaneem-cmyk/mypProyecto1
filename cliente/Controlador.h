@@ -24,6 +24,7 @@ class Controlador {
     std::string crear_unirse_sala(const std::string& nombre_sala);
     std::string crear_usuarios_sala(const std::string& nombre_sala);
     std::string crear_texto_sala(const std::string& nombre_sala, const std::string& texto);
+    std::string crear_salir_sala(const std::string& nombre_sala);
     std::string crear_desconexion();
     std::vector<std::pair<std::string, std::string>> obtener_usuarios();
     void procesar_mensaje(const std::string& mensaje);
