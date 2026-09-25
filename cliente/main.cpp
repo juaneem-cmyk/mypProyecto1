@@ -260,6 +260,18 @@ int main() {
       std::string mensaje_texto = controlador.crear_texto(destinatario, texto);
       cliente.enviar_mensaje(mensaje_texto);
     }
+    // Envía un mensaje público a los demás usuarios
+    else if (comando == "PUBLIC_TEXT") {
+      printf("Ingrese el mensaje: ");
+      std::string texto;
+      std::getline(std::cin, texto);
+      if (texto.empty()) {
+        printf("El mensaje no puede estar vacío.\n");
+        continue;
+      }
+    std::string mensaje = controlador.crear_texto_publico(texto);
+    cliente.enviar_mensaje(mensaje);
+  }
   }
   return 0;
 }

@@ -23,6 +23,10 @@ int extraer_texto_sala(const char *mensaje, char *nombre_sala, size_t sala_size,
 
 int extraer_salida_sala(const char *mensaje, char *nombre_sala, size_t sala_size);
 
+int extraer_texto_publico(const char *mensaje, char **texto);
+
+int crear_texto_publico_desde(const char *nombre_usuario, const char *texto, char *respuesta, size_t respuesta_size);
+
 int crear_usuario_salio(const char *nombre_usuario, const char *nombre_sala, char *respuesta, size_t respuesta_size);
 
 int crear_texto_sala_desde(const char *nombre_usuario, const char *nombre_sala, const char *texto, char *respuesta, size_t respuesta_size);

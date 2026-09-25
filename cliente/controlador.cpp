@@ -71,6 +71,21 @@ std::string Controlador::crear_texto(const std::string& destinatario, const std:
     return mensaje;
 }
 
+// Crea el mensaje para enviar un texto público
+std::string Controlador::crear_texto_publico(const std::string& texto) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("PUBLIC_TEXT"));
+    json_object_object_add(objeto, "text", json_object_new_string(texto.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Crea el mensaje JSON para cambiar el estado del usuario
 std::string Controlador::crear_status(const std::string& status) {
     struct json_object *objeto = json_object_new_object();
@@ -326,6 +341,16 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
 
         if (json_object_object_get_ex(objeto, "username", &usuario)) {
             printf("El usuario %s se desconectó.\n", json_object_get_string(usuario));
+        }
+    }
+    // Procesa un mensaje público recibido
+    if (strcmp(json_object_get_string(tipo), "PUBLIC_TEXT_FROM") == 0) {
+        json_object *usuario;
+        json_object *texto;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) &&
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("\nMensaje público de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
         }
     }
     json_object_put(objeto); // Liberar memoria del objeto JSON
