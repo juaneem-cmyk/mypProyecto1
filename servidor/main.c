@@ -300,6 +300,16 @@ int main() {
 
                                         if (crear_respuesta_identificacion(clientes[i]->nombre_usuario, "SUCCESS", respuesta, sizeof(respuesta))) {
                                             enviar_mensaje(clientes[i]->socket, respuesta);
+                                            // Notifica a los demás clientes que apareció un nuevo usuario
+                                            char notificacion_usuario[256];
+                                            
+                                            if (crear_nuevo_usuario(clientes[i]->nombre_usuario, notificacion_usuario, sizeof(notificacion_usuario))) {
+                                                for (int j = 1; j < cantidad; j++) {
+                                                    if (j != i && clientes[j]->identificado) {
+                                                        enviar_mensaje(clientes[j]->socket, notificacion_usuario);
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 } else {

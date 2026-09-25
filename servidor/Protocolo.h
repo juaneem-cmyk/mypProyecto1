@@ -53,6 +53,8 @@ int crear_invitacion(const char *nombre_usuario, const char *nombre_sala, char *
 
 int crear_respuesta_operacion(const char *operacion, const char *resultado, const char *extra, char *respuesta, size_t respuesta_size);
 
+int crear_nuevo_usuario(const char *nombre_usuario, char *respuesta, size_t respuesta_size);
+
 int crear_usuario_desconectado(const char *nombre_usuario, char *respuesta, size_t respuesta_size);
 
 #endif
