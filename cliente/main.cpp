@@ -38,9 +38,9 @@ int main() {
   while (cliente.esta_activo() && std::getline(std::cin, comando)) {
     // Permite cerrar el cliente desde la consola
     if (comando == "DISCONNECT") {
-        std::string mensaje_desconexion = controlador.crear_desconexion();
-        cliente.enviar_mensaje(mensaje_desconexion);
-        break;
+      std::string mensaje_desconexion = controlador.crear_desconexion();
+      cliente.enviar_mensaje(mensaje_desconexion);
+      break;
     }
 
     // Solicita la lista de usuarios al servidor
@@ -51,7 +51,7 @@ int main() {
       auto lista = controlador.obtener_usuarios();
       printf("Usuarios disponibles:\n");
       for (size_t i = 0; i < lista.size(); i++) {
-          printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
+        printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
       }
     }
 
@@ -77,8 +77,8 @@ int main() {
       std::getline(std::cin, nombre_sala);
 
       if (nombre_sala.empty() || nombre_sala.size() > 16) {
-          printf("Nombre de sala no válido.\n");
-          continue;
+        printf("Nombre de sala no válido.\n");
+        continue;
       }
       printf("¿Cuántos usuarios desea invitar?: ");
       std::string entrada_cantidad;
@@ -88,13 +88,13 @@ int main() {
       try {
           cantidad_usuarios = std::stoul(entrada_cantidad);
       } catch (...) {
-          printf("Cantidad no válida.\n");
-          continue;
+        printf("Cantidad no válida.\n");
+        continue;
       }
 
       if (cantidad_usuarios == 0) {
-          printf("Debe invitar al menos a un usuario.\n");
-          continue;
+        printf("Debe invitar al menos a un usuario.\n");
+        continue;
       }
       std::vector<std::string> usuarios;
       // Solicita el nombre de cada usuario que será invitado
@@ -104,15 +104,15 @@ int main() {
           std::getline(std::cin, usuario);
 
           if (usuario.empty() || usuario.size() > 8) {
-              printf("Nombre de usuario no válido.\n");
-              usuarios.clear();
-              break;
+            printf("Nombre de usuario no válido.\n");
+            usuarios.clear();
+            break;
           }
           usuarios.push_back(usuario);
       }
 
       if (usuarios.size() != cantidad_usuarios) {
-          continue;
+        continue;
       }
       std::string mensaje = controlador.crear_invitacion(nombre_sala, usuarios);
       cliente.enviar_mensaje(mensaje);
@@ -125,8 +125,8 @@ int main() {
     std::getline(std::cin, nombre_sala);
 
     if (nombre_sala.empty() || nombre_sala.size() > 16) {
-        printf("Nombre de sala no válido.\n");
-        continue;
+      printf("Nombre de sala no válido.\n");
+      continue;
     }
     std::string mensaje = controlador.crear_unirse_sala(nombre_sala);
     cliente.enviar_mensaje(mensaje);
@@ -142,6 +142,27 @@ int main() {
       continue;
     }
     std::string mensaje = controlador.crear_usuarios_sala(nombre_sala);
+    cliente.enviar_mensaje(mensaje);
+  }
+  // Envía un mensaje de texto a una sala
+  else if (comando == "ROOM_TEXT") {
+    printf("Ingrese el nombre de la sala: ");
+    std::string nombre_sala;
+    std::getline(std::cin, nombre_sala);
+
+    if (nombre_sala.empty() || nombre_sala.size() > 16) {
+        printf("Nombre de sala no válido.\n");
+        continue;
+    }
+    printf("Ingrese el mensaje: ");
+    std::string texto;
+    std::getline(std::cin, texto);
+
+    if (texto.empty()) {
+      printf("El mensaje no puede estar vacío.\n");
+      continue;
+    }
+    std::string mensaje = controlador.crear_texto_sala(nombre_sala, texto);
     cliente.enviar_mensaje(mensaje);
   }
   // Cambia el estado del usuario
@@ -170,13 +191,13 @@ int main() {
       
       // Verifico que haya usuarios disponibles
       if (lista.empty()) {
-          printf("No hay usuarios disponibles.\n");
-          continue;
+        printf("No hay usuarios disponibles.\n");
+        continue;
       }
       // Muestro los usuarios para que el usuario pueda seleccionar uno
       printf("Usuarios disponibles:\n");
       for (size_t i = 0; i < lista.size(); i++) {
-          printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
+        printf("%zu. %s [%s]\n", i + 1, lista[i].first.c_str(), lista[i].second.c_str());
       }
       // Solicito al usuario que seleccione un destinatario
       printf("Seleccione un usuario por número o nombre: ");
