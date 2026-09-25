@@ -641,6 +641,56 @@ int main() {
                                     break;
                                 }
                             }
+                            // Desconecta al usuario y lo saca de todas sus salas
+                            else if (strcmp(tipo, "DISCONNECT") == 0) {
+                                char respuesta_desconexion[256];
+
+                                if (crear_usuario_desconectado(clientes[i]->nombre_usuario, respuesta_desconexion, sizeof(respuesta_desconexion))) {          
+                                    // Aviso a los demás usuarios que este usuario se desconectó
+                                    for (int j = 1; j < cantidad; j++) {
+                                        if (j != i && clientes[j]->identificado) {
+                                            enviar_mensaje(clientes[j]->socket, respuesta_desconexion);
+                                        }
+                                    }
+                                }                            
+                                GHashTableIter iter_salas;
+                                gpointer clave_sala;
+                                gpointer valor_sala;                            
+                                g_hash_table_iter_init(&iter_salas, salas);                            
+                                // Recorro todas las salas para sacar al usuario de ellas
+                                while (g_hash_table_iter_next(&iter_salas, &clave_sala, &valor_sala)) {                                                            
+                                    struct sala *sala = valor_sala;
+                                                            
+                                    if (!sala_es_miembro(sala, clientes[i]->nombre_usuario)) {
+                                        continue;
+                                    }                                
+                                    char notificacion[256];
+                                
+                                    if (crear_usuario_salio(clientes[i]->nombre_usuario, sala->nombre, notificacion, sizeof(notificacion))) {
+                                        GHashTableIter iter_miembros;
+                                        gpointer clave_miembro;
+                                        gpointer valor_miembro;                                                            
+                                        g_hash_table_iter_init(&iter_miembros, sala->miembros);                                        
+                                        // Aviso a los miembros restantes que salió de la sala
+                                        while (g_hash_table_iter_next(&iter_miembros, &clave_miembro, &valor_miembro)) {                                                                    
+                                            struct cliente *miembro = valor_miembro;
+                                                                    
+                                            if (miembro != clientes[i]) {
+                                                enviar_mensaje(miembro->socket, notificacion);
+                                            }
+                                        }
+                                    }                                
+                                    sala_eliminar_miembro(sala, clientes[i]->nombre_usuario);                                    
+                                    if (sala_sin_miembros(sala)) {
+                                        g_hash_table_iter_remove(&iter_salas);
+                                    }
+                                }                            
+                                printf("Cliente desconectado: %s\n", clientes[i]->nombre_usuario);                                
+                                eliminar_cliente(fds, clientes, &cantidad, i, usuarios);                                
+                                i--;
+                                cliente_eliminado = 1;
+                                break;
+                            }
                             // Extraigo y valido el estado solicitado
                             else if (strcmp(tipo, "STATUS") == 0) {
                                 char status[7];
