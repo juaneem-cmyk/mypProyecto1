@@ -186,6 +186,15 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
                    json_object_get_string(sala));
         }
     }
+    // Procesa la notificación de que un usuario se unió a una sala
+    if (strcmp(json_object_get_string(tipo), "JOINED_ROOM") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala)) {
+            printf("El usuario %s se unió a la sala %s.\n", json_object_get_string(usuario), json_object_get_string(sala));
+        }
+    }
     
     // Procesar el mensaje según su tipo
     if (strcmp(json_object_get_string(tipo), "RESPONSE") == 0) {
