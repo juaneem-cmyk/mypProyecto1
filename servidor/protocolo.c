@@ -585,3 +585,30 @@ int extraer_invitacion(const char *mensaje, char *nombre_sala, size_t sala_size,
     json_object_put(objeto);
     return 1;
 }
+
+// Crea el mensaje JSON de invitación para un usuario
+int crear_invitacion(const char *nombre_usuario, const char *nombre_sala, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("INVITATION"));
+    json_object_object_add(objeto, "username", json_object_new_string(nombre_usuario));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala));
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}
