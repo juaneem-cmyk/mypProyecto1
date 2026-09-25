@@ -128,6 +128,22 @@ std::string Controlador::crear_invitacion(const std::string& nombre_sala, const 
     return mensaje;
 }
 
+// Crea el mensaje para solicitar los usuarios de una sala
+std::string Controlador::crear_usuarios_sala(
+    const std::string& nombre_sala) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("ROOM_USERS"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Crea el mensaje para solicitar unirse a una sala
 std::string Controlador::crear_unirse_sala(
     const std::string& nombre_sala) {
@@ -239,6 +255,19 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) && 
         json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
             printf("\nMensaje privado de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
+        }
+    }
+    // Procesa la lista de usuarios de una sala
+    if (strcmp(json_object_get_string(tipo), "ROOM_USER_LIST") == 0) {
+        json_object *sala;
+        json_object *lista_usuarios;
+
+        if (json_object_object_get_ex(objeto, "roomname", &sala) && 
+        json_object_object_get_ex(objeto, "users", &lista_usuarios) && json_object_is_type(lista_usuarios, json_type_object)) {
+            printf("Usuarios de la sala %s:\n", json_object_get_string(sala));
+            json_object_object_foreach(lista_usuarios, nombre, estado) {
+                printf("- %s [%s]\n", nombre, json_object_get_string(estado));
+            }
         }
     }
     json_object_put(objeto); // Liberar memoria del objeto JSON
