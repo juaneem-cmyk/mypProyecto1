@@ -19,6 +19,10 @@ int extraer_union_sala(const char *mensaje, char *nombre_sala, size_t sala_size)
 
 int extraer_usuarios_sala(const char *mensaje, char *nombre_sala, size_t sala_size);
 
+int extraer_texto_sala(const char *mensaje, char *nombre_sala, size_t sala_size, char **texto);
+
+int crear_texto_sala_desde(const char *nombre_usuario, const char *nombre_sala, const char *texto, char *respuesta, size_t respuesta_size);
+
 int crear_lista_usuarios_sala(const char *nombre_sala, const char *nombres[], const char *estados[], size_t cantidad, char *respuesta, size_t respuesta_size);
 
 int crear_usuario_unido(const char *nombre_usuario, const char *nombre_sala, char *respuesta, size_t respuesta_size);

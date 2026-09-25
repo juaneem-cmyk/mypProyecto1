@@ -750,3 +750,106 @@ int crear_lista_usuarios_sala(const char *nombre_sala, const char *nombres[], co
     json_object_put(objeto);
     return 1;
 }
+
+// Extrae y valida la sala y el texto de una solicitud ROOM_TEXT.
+int extraer_texto_sala(const char *mensaje,
+                       char *nombre_sala,
+                       size_t sala_size,
+                       char **texto) {
+    struct json_object *objeto;
+    struct json_object *tipo;
+    struct json_object *sala;
+    struct json_object *texto_json;
+    const char *nombre;
+    const char *contenido;
+
+    *texto = NULL;
+
+    objeto = json_tokener_parse(mensaje);
+
+    if (objeto == NULL ||
+        !json_object_is_type(objeto, json_type_object)) {
+        if (objeto != NULL) {
+            json_object_put(objeto);
+        }
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "type", &tipo) ||
+        !json_object_is_type(tipo, json_type_string) ||
+        strcmp(json_object_get_string(tipo), "ROOM_TEXT") != 0) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "roomname", &sala) ||
+        !json_object_is_type(sala, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    nombre = json_object_get_string(sala);
+
+    if (nombre == NULL ||
+        strlen(nombre) == 0 ||
+        strlen(nombre) >= sala_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "text", &texto_json) ||
+        !json_object_is_type(texto_json, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    contenido = json_object_get_string(texto_json);
+
+    if (contenido == NULL) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    strncpy(nombre_sala, nombre, sala_size - 1);
+    nombre_sala[sala_size - 1] = '\0';
+
+    *texto = malloc(strlen(contenido) + 1);
+
+    if (*texto == NULL) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    strcpy(*texto, contenido);
+
+    json_object_put(objeto);
+    return 1;
+}
+
+// Crea el mensaje ROOM_TEXT_FROM que se envía a los miembros de una sala
+int crear_texto_sala_desde(const char *nombre_usuario, const char *nombre_sala, const char *texto, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("ROOM_TEXT_FROM"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala));
+    json_object_object_add(objeto, "username", json_object_new_string(nombre_usuario));
+    json_object_object_add(objeto, "text", json_object_new_string(texto));
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}
