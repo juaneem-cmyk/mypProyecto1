@@ -116,7 +116,7 @@ int main() {
       }
       std::string mensaje = controlador.crear_invitacion(nombre_sala, usuarios);
       cliente.enviar_mensaje(mensaje);
-  }
+    }
 
   // Solicita unirse a una sala a la que el usuario fue invitado
   else if (comando == "JOIN_ROOM") {
@@ -130,9 +130,21 @@ int main() {
     }
     std::string mensaje = controlador.crear_unirse_sala(nombre_sala);
     cliente.enviar_mensaje(mensaje);
-}
+  }
+  // Solicita la lista de usuarios de una sala
+  else if (comando == "ROOM_USERS") {
+    printf("Ingrese el nombre de la sala: ");
+    std::string nombre_sala;
+    std::getline(std::cin, nombre_sala);
 
-    // Cambia el estado del usuario
+    if (nombre_sala.empty() || nombre_sala.size() > 16) {
+      printf("Nombre de sala no válido.\n");
+      continue;
+    }
+    std::string mensaje = controlador.crear_usuarios_sala(nombre_sala);
+    cliente.enviar_mensaje(mensaje);
+  }
+  // Cambia el estado del usuario
     else if (comando == "STATUS") {
       printf("Ingrese el nuevo estado (ACTIVE, AWAY o BUSY): ");
       std::string estado;
@@ -147,7 +159,6 @@ int main() {
       cliente.enviar_mensaje(mensaje_status);
       printf("Estado cambiado a %s.\n", estado.c_str());
     }
-
     // Inicia el proceso para enviar un mensaje privado
     else if (comando == "TEXT") {
       std::string mensaje = controlador.crear_solicitud_usuarios();
