@@ -915,3 +915,30 @@ int crear_usuario_salio(const char *nombre_usuario, const char *nombre_sala, cha
     json_object_put(objeto);
     return 1;
 }
+
+// Crea la notificación de que un usuario se desconectó
+int crear_usuario_desconectado(const char *nombre_usuario, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+
+    json_object_object_add(objeto, "type", json_object_new_string("DISCONNECTED"));
+    json_object_object_add(objeto, "username", json_object_new_string(nombre_usuario));
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}
