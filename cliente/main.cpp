@@ -54,6 +54,21 @@ int main() {
       }
     }
 
+    // Solicita al servidor la creación de una nueva sala
+    else if (comando == "NEW_ROOM") {
+      printf("Ingrese el nombre de la sala: ");    
+      std::string nombre_sala;
+      std::getline(std::cin, nombre_sala);
+      
+      if (nombre_sala.empty() || nombre_sala.size() > 16) {
+        printf("Nombre de sala no válido.\n");
+        continue;
+      }
+      std::string mensaje =
+      controlador.crear_nueva_sala(nombre_sala);
+      cliente.enviar_mensaje(mensaje);
+    }
+
     // Cambia el estado del usuario
     else if (comando == "STATUS") {
       printf("Ingrese el nuevo estado (ACTIVE, AWAY o BUSY): ");
