@@ -541,6 +541,55 @@ int main() {
                                     break;
                                 }
                             }
+                            // Procesa un mensaje de texto enviado a una sala
+                            else if (strcmp(tipo, "ROOM_TEXT") == 0) {
+                                char nombre_sala[17];
+                                char *texto = NULL;
+
+                                if (extraer_texto_sala(clientes[i]->buffer, nombre_sala, sizeof(nombre_sala), &texto)) {                                                    
+                                    struct sala *sala = g_hash_table_lookup(salas, nombre_sala);
+                                                    
+                                    if (sala == NULL) {
+                                        char respuesta[256];
+                                    
+                                        if (crear_respuesta_operacion("ROOM_TEXT", "NO_SUCH_ROOM", nombre_sala, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
+                                    
+                                    } else if (!sala_es_miembro(sala, clientes[i]->nombre_usuario)) {                                                                
+                                        char respuesta[256];
+                                                                
+                                        if (crear_respuesta_operacion("ROOM_TEXT", "NOT_JOINED", nombre_sala, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
+                                    
+                                    } else {
+                                        char respuesta[1024];
+                                    
+                                        if (crear_texto_sala_desde(clientes[i]->nombre_usuario, nombre_sala, texto, respuesta, sizeof(respuesta))) {                                                
+                                            GHashTableIter iter;
+                                            gpointer clave;
+                                            gpointer valor;                                                
+                                            g_hash_table_iter_init(&iter, sala->miembros);                                                
+                                            // Envío el mensaje a todos los miembros excepto al emisor
+                                            while (g_hash_table_iter_next(&iter, &clave, &valor)) {
+                                                struct cliente *miembro = valor;
+                                                                        
+                                                if (miembro != clientes[i]) {
+                                                    enviar_mensaje(miembro->socket, respuesta);
+                                                }
+                                            }
+                                        }
+                                    }                                
+                                    free(texto);
+                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
+                                }
+                            }
                             // Extraigo y valido el estado solicitado
                             else if (strcmp(tipo, "STATUS") == 0) {
                                 char status[7];
