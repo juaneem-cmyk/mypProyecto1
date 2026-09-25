@@ -102,6 +102,32 @@ std::string Controlador::crear_nueva_sala(const std::string& nombre_sala) {
     return mensaje;
 }
 
+// Crea el mensaje para invitar usuarios a una sala
+std::string Controlador::crear_invitacion(const std::string& nombre_sala, const std::vector<std::string>& usuarios) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    struct json_object *lista_usuarios = json_object_new_array();
+
+    if (lista_usuarios == nullptr) {
+        json_object_put(objeto);
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("INVITE"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    // Agrego cada nombre al arreglo de usuarios
+    for (const std::string& usuario : usuarios) {
+        json_object_array_add(lista_usuarios, json_object_new_string(usuario.c_str()));
+    }
+    json_object_object_add(objeto, "usernames", lista_usuarios);
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
 // Espera hasta que el hilo de lectura reciba USER_LIST
 void Controlador::esperar_lista_usuarios() {
     std::unique_lock<std::mutex> bloqueo(mutex_usuarios);
