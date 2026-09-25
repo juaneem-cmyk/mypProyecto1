@@ -676,3 +676,77 @@ int crear_invitacion(const char *nombre_usuario, const char *nombre_sala, char *
     json_object_put(objeto);
     return 1;
 }
+
+// Extrae y valida el nombre de una sala para una solicitud ROOM_USERS
+int extraer_usuarios_sala(const char *mensaje, char *nombre_sala, size_t sala_size) {
+    struct json_object *objeto;
+    struct json_object *tipo;
+    struct json_object *sala;
+    objeto = json_tokener_parse(mensaje);
+
+    if (objeto == NULL) {
+        return 0;
+    }
+
+    if (!json_object_is_type(objeto, json_type_object)) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "type", &tipo) || !json_object_is_type(tipo, json_type_string) || strcmp(json_object_get_string(tipo), "ROOM_USERS") != 0) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "roomname", &sala) || !json_object_is_type(sala, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+    const char *nombre = json_object_get_string(sala);
+
+    if (nombre == NULL || strlen(nombre) == 0 || strlen(nombre) >= sala_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    strcpy(nombre_sala, nombre);
+    json_object_put(objeto);
+    return 1;
+}
+
+// Crea la respuesta ROOM_USER_LIST con los miembros y sus estados
+int crear_lista_usuarios_sala(const char *nombre_sala, const char *nombres[], const char *estados[], size_t cantidad, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    struct json_object *lista_usuarios;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+    lista_usuarios = json_object_new_object();
+
+    if (lista_usuarios == NULL) {
+        json_object_put(objeto);
+        return 0;
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("ROOM_USER_LIST"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala));
+    // Agrego cada miembro de la sala junto con su estado
+    for (size_t i = 0; i < cantidad; i++) {
+        json_object_object_add(lista_usuarios, nombres[i], json_object_new_string(estados[i]));
+    }
+    json_object_object_add(objeto, "users", lista_usuarios);
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}

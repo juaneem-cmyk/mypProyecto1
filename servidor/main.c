@@ -408,7 +408,7 @@ int main() {
                                                 sala_agregar_invitado(sala, invitado);                                            
                                                 char respuesta[256];
                                             
-                                                if (crear_invitacion(invitado->nombre_usuario, nombre_sala, respuesta, sizeof(respuesta))) {
+                                                if (crear_invitacion(clientes[i]->nombre_usuario, nombre_sala, respuesta, sizeof(respuesta))) {
                                                     enviar_mensaje(invitado->socket, respuesta);
                                                 }
                                             }
