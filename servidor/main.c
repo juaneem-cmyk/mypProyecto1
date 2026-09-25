@@ -426,7 +426,59 @@ int main() {
                                     cliente_eliminado = 1;
                                     break;
                                 }
-                            } 
+                            }
+                            // Procesa la solicitud de un usuario para unirse a una sala
+                            else if (strcmp(tipo, "JOIN_ROOM") == 0) {
+                                char nombre_sala[17];
+
+                                if (extraer_union_sala(clientes[i]->buffer, nombre_sala, sizeof(nombre_sala))) {                                                    
+                                    struct sala *sala = g_hash_table_lookup(salas, nombre_sala);
+                                                    
+                                    if (sala == NULL) {
+                                        char respuesta[256];
+                                    
+                                        if (crear_respuesta_operacion("JOIN_ROOM", "NO_SUCH_ROOM", nombre_sala, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
+                                    
+                                    } else if (!sala_es_invitado(sala, clientes[i]->nombre_usuario)) {                                                                
+                                        char respuesta[256];
+                                                                
+                                        if (crear_respuesta_operacion("JOIN_ROOM", "NOT_INVITED", nombre_sala, respuesta, sizeof(respuesta))) {
+                                            enviar_mensaje(clientes[i]->socket, respuesta);
+                                        }
+                                    
+                                    } else {
+                                        if (sala_unir_miembro(sala, clientes[i])) {
+                                            char respuesta[256];
+                                        
+                                            if (crear_respuesta_operacion("JOIN_ROOM", "SUCCESS", nombre_sala, respuesta, sizeof(respuesta))) {
+                                                enviar_mensaje(clientes[i]->socket, respuesta);
+                                            }                                        
+                                            char notificacion[256];
+                                        
+                                            if (crear_usuario_unido(clientes[i]->nombre_usuario, nombre_sala, notificacion, sizeof(notificacion))) {                                                                    
+                                                // Notifico a todos los miembros actuales de la sala
+                                                GHashTableIter iter;
+                                                gpointer clave;
+                                                gpointer valor;                                                                    
+                                                g_hash_table_iter_init(&iter, sala->miembros);
+
+                                                while (g_hash_table_iter_next(&iter, &clave, &valor)) {
+                                                    struct cliente *miembro = valor;
+                                                    enviar_mensaje(miembro->socket, notificacion);
+                                                }
+                                            }
+                                        }
+                                    }
+                                
+                                } else {
+                                    rechazar_mensaje_invalido(fds, clientes, &cantidad, i, usuarios);
+                                    i--;
+                                    cliente_eliminado = 1;
+                                    break;
+                                }
+                            }
                             // Extraigo y valido el estado solicitado
                             else if (strcmp(tipo, "STATUS") == 0) {
                                 char status[7];
