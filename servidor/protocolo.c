@@ -853,3 +853,65 @@ int crear_texto_sala_desde(const char *nombre_usuario, const char *nombre_sala, 
     json_object_put(objeto);
     return 1;
 }
+
+// Extrae y valida el nombre de una sala para LEAVE_ROOM
+int extraer_salida_sala(const char *mensaje, char *nombre_sala, size_t sala_size) {
+    struct json_object *objeto;
+    struct json_object *tipo;
+    struct json_object *sala;
+    const char *nombre;
+    objeto = json_tokener_parse(mensaje);
+
+    if (objeto == NULL || !json_object_is_type(objeto, json_type_object)) {
+        if (objeto != NULL) {
+            json_object_put(objeto);
+        }
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "type", &tipo) || !json_object_is_type(tipo, json_type_string) || strcmp(json_object_get_string(tipo), "LEAVE_ROOM") != 0) {
+        json_object_put(objeto);
+        return 0;
+    }
+
+    if (!json_object_object_get_ex(objeto, "roomname", &sala) || !json_object_is_type(sala, json_type_string)) {
+        json_object_put(objeto);
+        return 0;
+    }
+    nombre = json_object_get_string(sala);
+
+    if (nombre == NULL || strlen(nombre) == 0 || strlen(nombre) >= sala_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    strcpy(nombre_sala, nombre);
+    json_object_put(objeto);
+    return 1;
+}
+
+// Crea la notificación LEFT_ROOM
+int crear_usuario_salio(const char *nombre_usuario, const char *nombre_sala, char *respuesta, size_t respuesta_size) {
+    struct json_object *objeto;
+    const char *texto_json;
+    size_t longitud;
+    objeto = json_object_new_object();
+
+    if (objeto == NULL) {
+        return 0;
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("LEFT_ROOM"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala));
+    json_object_object_add(objeto, "username", json_object_new_string(nombre_usuario));
+    texto_json = json_object_to_json_string(objeto);
+    longitud = strlen(texto_json);
+
+    if (longitud + 2 > respuesta_size) {
+        json_object_put(objeto);
+        return 0;
+    }
+    memcpy(respuesta, texto_json, longitud);
+    respuesta[longitud] = '\n';
+    respuesta[longitud + 1] = '\0';
+    json_object_put(objeto);
+    return 1;
+}
