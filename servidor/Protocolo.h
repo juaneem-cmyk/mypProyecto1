@@ -29,6 +29,8 @@ int crear_nuevo_status(const char *nombre_usuario, const char *status, char *res
 
 int crear_respuesta_sala(const char *operacion, const char *resultado, const char *extra, char *respuesta, size_t respuesta_size);
 
+int crear_invitacion(const char *nombre_usuario, const char *nombre_sala, char *respuesta, size_t respuesta_size);
+
 int crear_respuesta_operacion(const char *operacion, const char *resultado, const char *extra, char *respuesta, size_t respuesta_size);
 
 #endif

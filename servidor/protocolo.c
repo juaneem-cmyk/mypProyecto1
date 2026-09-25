@@ -539,7 +539,47 @@ int extraer_invitacion(const char *mensaje, char *nombre_sala, size_t sala_size,
         json_object_put(objeto);
         return 0;
     }
-    
+    // Recorro todos los elementos del arreglo para validar y copiar cada nombre de usuario a memoria propia
+    for (size_t i = 0; i < cantidad; i++) {
+        struct json_object *usuario;
+        const char *nombre;
+        size_t longitud;
+        usuario = json_object_array_get_idx(lista, i);
+
+        if (usuario == NULL || !json_object_is_type(usuario, json_type_string)) {
+            // Libero los nombres que ya se habían copiado antes de encontrar el elemento inválido
+            for (size_t j = 0; j < i; j++) {
+                free(nombres[j]);
+            }
+            free(nombres);
+            json_object_put(objeto);
+            return 0;
+        }
+        nombre = json_object_get_string(usuario);
+        longitud = strlen(nombre);
+
+        if (nombre == NULL || longitud == 0 || longitud > 8) {
+            // Libero las cadenas reservadas antes de detectar que el nombre actual no es válido
+            for (size_t j = 0; j < i; j++) {
+                free(nombres[j]);
+            }
+            free(nombres);
+            json_object_put(objeto);
+            return 0;
+        }
+        nombres[i] = malloc(longitud + 1);
+
+        if (nombres[i] == NULL) {
+            // Libero todas las cadenas reservadas hasta este momento porque ya no pudimos reservar memoria para la actual
+            for (size_t j = 0; j < i; j++) {
+                free(nombres[j]);
+            }
+            free(nombres);
+            json_object_put(objeto);
+            return 0;
+        }
+        strcpy(nombres[i], nombre);
+    }
     *usuarios = nombres;
     *cantidad_usuarios = cantidad;
     json_object_put(objeto);
