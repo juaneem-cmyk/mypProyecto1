@@ -6,8 +6,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <glib.h>
 #include <signal.h>
 #include "Protocolo.h"
+#include "sala.h"
+#include "cliente.h"
+#include "comandos.h"
 
 /*Voy a seguir un tutorial.
  https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16 
@@ -23,33 +27,6 @@
 volatile sig_atomic_t servidor_activo = 1;
 void manejar_señal(int señal) {
     servidor_activo = 0;
-}
-
-// Enviar respuesta a los clientes conectados
-void enviar_mensaje (int socket, const char *mensaje) {
-    send(socket, mensaje, strlen(mensaje), 0);
-}
-
-struct cliente {
-    int socket;
-    size_t usados;
-    size_t capacidad_buffer;
-    char *buffer;
-    char nombre_usuario[9];
-    int identificado;
-};
-
-// Elimina a un cliente y libera la memoria
-void eliminar_cliente(struct pollfd *fds, struct cliente *clientes, int *cantidad, int indice){
-    close(fds[indice].fd);
-    free(clientes[indice].buffer);
-
-    // Acomodo los clientes que están después del eliminado
-    for (int j = indice; j < *cantidad - 1; j++){
-        fds[j] = fds[j + 1];
-        clientes[j] = clientes[j + 1];
-    }
-    (*cantidad)--;
 }
 
 int main() {
@@ -87,9 +64,25 @@ int main() {
     /* Configuro el polling para manejar múltiples clientes 
     https://www.ibm.com/docs/en/i/7.4.0?topic=designs-using-poll-instead-select */
     int capacidad = 1;
-    int cantidad = 1;
+    size_t cantidad = 1;
     struct pollfd *fds = malloc(sizeof(struct pollfd) * capacidad);
-    struct cliente *clientes = malloc(sizeof(struct cliente) * capacidad);
+    struct cliente **clientes = malloc(sizeof(struct cliente *) * capacidad);
+    GHashTable *usuarios = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    GHashTable *salas = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, destruir_sala);
+    struct contexto_servidor contexto = {
+        .fds = fds,
+        .clientes = clientes,
+        .cantidad = &cantidad,
+        .usuarios = usuarios,
+        .salas = salas
+    };
+
+    if (usuarios == NULL){
+        fprintf(stderr, "Error al crear la tabla de usuarios\n");
+        free(fds);
+        free(clientes);
+        return 1;
+    }
     
     // Inicializo los clientes
     if (clientes == NULL) {
@@ -115,8 +108,8 @@ int main() {
             perror("Error en poll");
             break;
         }
+        // No hay actividad, continúo esperando
         if (actividad == 0) {
-            // No hay actividad, continúo esperando
             continue;
         }
         
@@ -139,7 +132,7 @@ int main() {
                     continue;
                 }
                 fds = temporal;
-                struct cliente *temporal_clientes = realloc(clientes, sizeof(struct cliente) * capacidad);
+                struct cliente **temporal_clientes = realloc(clientes, sizeof(struct cliente *) * capacidad);
                 
                 // Verifico si la memoria se amplió correctamente
                 if (temporal_clientes == NULL) {
@@ -148,19 +141,15 @@ int main() {
                     continue;
                 }
                 clientes = temporal_clientes;
+                contexto.fds = fds;
+                contexto.clientes = clientes;
             }
-
             fds[cantidad].fd = nuevo_socket; // Agrego el nuevo socket al arreglo de fds
             fds[cantidad].events = POLLIN; // Configuro el evento de lectura para el nuevo socket
             fds[cantidad].revents = 0; // Inicializo los eventos de revents en 0
-            clientes[cantidad].socket = nuevo_socket; // Inicializo el socket del cliente
-            clientes[cantidad].usados = 0; // Inicializo la cantidad de bytes usados en el buffer del cliente
-            clientes[cantidad].nombre_usuario[0] = '\0'; // Inicializo el nombre de usuario del cliente
-            clientes[cantidad].identificado = 0; // Inicializo el estado de identificación del cliente
-            clientes[cantidad].capacidad_buffer = BUFFER_SIZE; 
-            clientes[cantidad].buffer = malloc(BUFFER_SIZE);
-            if (clientes[cantidad].buffer == NULL){
-                perror("Error al reservar el buffer del cliente");
+            clientes[cantidad] = crear_cliente(nuevo_socket, BUFFER_SIZE);
+
+            if (clientes[cantidad] == NULL) {
                 close(nuevo_socket);
                 continue;
             }
@@ -178,18 +167,14 @@ int main() {
                 } 
                 if (bytes_leidos == 0) {
                     printf("Cliente desconectado\n");
-                    close(fds[i].fd);
-                    free(clientes[i].buffer);
-                    eliminar_cliente(fds, clientes, &cantidad, i);
+                    eliminar_cliente(&contexto, i);
                     i--;
                 } else {
                     // Calculo el espacio que necesito para almacenar los datos recibidos
-                    size_t espacio_necesario = clientes[i].usados + bytes_leidos + 1;
-
+                    size_t espacio_necesario = clientes[i]->usados + bytes_leidos + 1;
                     //Si no tiene espacio, lo amplio
-                    if (espacio_necesario > clientes[i].capacidad_buffer) {
-                        size_t nueva_capacidad = clientes[i].capacidad_buffer * 2;
-
+                    if (espacio_necesario > clientes[i]->capacidad_buffer) {
+                        size_t nueva_capacidad = clientes[i]->capacidad_buffer * 2;
                         // Duplico la capacidad para que quepan los datos recibidos
                         while (nueva_capacidad < espacio_necesario) {
                             nueva_capacidad *= 2;
@@ -198,72 +183,55 @@ int main() {
                         if (nueva_capacidad > MAX_MENSAJE + BUFFER_SIZE + 1) {
                             nueva_capacidad = MAX_MENSAJE + BUFFER_SIZE + 1;
                         }
-                        char *nuevo_buffer = realloc(clientes[i].buffer, nueva_capacidad);
+                        char *nuevo_buffer = realloc(clientes[i]->buffer, nueva_capacidad);
 
                         if (nuevo_buffer == NULL) {
                             perror("Error al ampliar el buffer del cliente");
-                            close(fds[i].fd);
-                            free(clientes[i].buffer);
-                            eliminar_cliente(fds, clientes, &cantidad, i);
+                            eliminar_cliente(&contexto, i);
                             i--;
                             continue;
                         }
-                        clientes[i].buffer = nuevo_buffer;
-                        clientes[i].capacidad_buffer = nueva_capacidad;
+                        clientes[i]->buffer = nuevo_buffer;
+                        clientes[i]->capacidad_buffer = nueva_capacidad;
                     }
                     // Copio los datos recibidos al buffer del cliente
-                    memcpy(clientes[i].buffer + clientes[i].usados, lectura, bytes_leidos);
-                    clientes[i].usados += bytes_leidos; // Actualizo los bytes utilizados
-                    clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
-                
+                    memcpy(clientes[i]->buffer + clientes[i]->usados, lectura, bytes_leidos);
+                    clientes[i]->usados += bytes_leidos; // Actualizo los bytes utilizados
+                    clientes[i]->buffer[clientes[i]->usados] = '\0'; // Aseguro que el buffer esté terminado en nulo                
                     char *fin_mensaje;
+                    int cliente_eliminado = 0;
                     
                     // Procesar todos los mensajes completos en el buffer del cliente
-                    while ((fin_mensaje = strchr(clientes[i].buffer, '\n')) != NULL) {
-                        int longitud_mensaje = fin_mensaje - clientes[i].buffer;
+                    while ((fin_mensaje = strchr(clientes[i]->buffer, '\n')) != NULL) {
+                        int longitud_mensaje = fin_mensaje - clientes[i]->buffer;
                         
                         // Verifico que el mensaje no supere el tamaño máximo permitido
                         if (longitud_mensaje > MAX_MENSAJE) {
                             fprintf(stderr, "Mensaje demasiado grande, cliente desconectado\n (˶ᵔ ᵕ ᵔ˶)");
-                            close(fds[i].fd);
-                            free(clientes[i].buffer);
-                            // Remuevo el cliente del arreglo
-                            for (int j = i; j < cantidad - 1; j++) {
-                                fds[j] = fds[j + 1];
-                                clientes[j] = clientes[j + 1];
-                            }
-                            cantidad--;
+                            eliminar_cliente(&contexto, i);
                             i--;
+                            cliente_eliminado = 1;
                             break;
                         }
-                        printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i].buffer);
-                        char nombre_usuario[9];
-                    
-                        // Extraer y validar la identificación del cliente desde el mensaje JSON
-                        if (extraer_identificacion(clientes[i].buffer, nombre_usuario, sizeof(nombre_usuario))) {
-                            strncpy(clientes[i].nombre_usuario, nombre_usuario, sizeof(clientes[i].nombre_usuario) - 1);
-                            clientes[i].nombre_usuario[sizeof(clientes[i].nombre_usuario) - 1] = '\0'; // Aseguro que el nombre de usuario esté terminado en nulo
-                            clientes[i].identificado = 1;
-                            printf("Cliente identificado como: %s\n", clientes[i].nombre_usuario);
-                            char respuesta[256];
-                            if (crear_respuesta_identificacion(clientes[i].nombre_usuario, respuesta, sizeof(respuesta))) {
-                                enviar_mensaje(clientes[i].socket, respuesta);
-                            } else {
-                                fprintf(stderr, "Error al crear la respuesta de identificación\n");
-                            }
-                        }
-                        int restante = clientes[i].usados - (longitud_mensaje + 1);
-                        memmove(clientes[i].buffer, fin_mensaje + 1, restante);
-                        clientes[i].usados = restante;
-                        clientes[i].buffer[clientes[i].usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
-                    }
+                        printf("Mensaje recibido: %.*s\n", longitud_mensaje, clientes[i]->buffer);
 
+                        if (manejar_mensaje(&contexto, i)) {
+                            i--;
+                            cliente_eliminado = 1;
+                            break;
+                        }
+                        int restante = clientes[i]->usados - (longitud_mensaje + 1);
+                        memmove(clientes[i]->buffer, fin_mensaje + 1, restante);
+                        clientes[i]->usados = restante;
+                        clientes[i]->buffer[clientes[i]->usados] = '\0'; // Aseguro que el buffer esté terminado en nulo
+                    }
+                    if (cliente_eliminado){
+                        continue;
+                    }
                     // Verifico si el mensaje incompleto ya superó el tamaño máximo permitido
-                    if (clientes[i].usados > MAX_MENSAJE) {
+                    if (clientes[i]->usados > MAX_MENSAJE) {
                         fprintf(stderr, "Mensaje demasiado grande. Cliente desconectado.\n");
-                        close(fds[i].fd);
-                        free(clientes[i].buffer);
-                        eliminar_cliente(fds, clientes, &cantidad, i);
+                        eliminar_cliente(&contexto, i);
                         i--;
                         continue;
                     }
@@ -272,12 +240,15 @@ int main() {
         }
     }
     // Cierro todos los sockets y libero la memoria
-        for (int i = 1; i < cantidad; i++) {
-            close(fds[i].fd);
-        }
-        close (servidor_socket);
-        free(fds);
-        free(clientes);
-        printf("Servidor cerrado\n");
+    for (int i = 1; i < cantidad; i++) {
+        close(fds[i].fd);
+        destruir_cliente(clientes[i]);
+    }
+    close (servidor_socket);
+    g_hash_table_destroy(salas);
+    g_hash_table_destroy(usuarios);
+    free(fds);
+    free(clientes);
+    printf("Servidor cerrado\n");
     return 0;
 }

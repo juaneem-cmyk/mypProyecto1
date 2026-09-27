@@ -19,6 +19,204 @@ std::string Controlador::crear_identificacion(const std::string& usuario) {
     return mensaje;
 }
 
+// Crea el mensaje JSON para solicitar la lista de usuarios al servidor
+std::string Controlador::crear_solicitud_usuarios() {
+    {
+    std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
+    lista_usuarios_recibida = false;
+    }
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+
+    json_object_object_add( objeto, "type", json_object_new_string("USERS"));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje JSON para solicitar la desconexión del cliente
+std::string Controlador::crear_desconexion() {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("DISCONNECT"));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje JSON para enviar un texto privado a otro usuario
+std::string Controlador::crear_texto(const std::string& destinatario, const std::string& texto) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    // Agrego el tipo de operación
+    json_object_object_add(objeto, "type", json_object_new_string("TEXT"));
+    // Agrego el nombre del usuario destinatario
+    json_object_object_add(objeto, "username", json_object_new_string(destinatario.c_str()));
+    // Agrego el contenido del mensaje
+    json_object_object_add(objeto, "text", json_object_new_string(texto.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje para enviar un texto público
+std::string Controlador::crear_texto_publico(const std::string& texto) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("PUBLIC_TEXT"));
+    json_object_object_add(objeto, "text", json_object_new_string(texto.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje JSON para cambiar el estado del usuario
+std::string Controlador::crear_status(const std::string& status) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("STATUS"));
+    json_object_object_add(objeto, "status", json_object_new_string(status.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje JSON para solicitar la creación de una nueva sala
+std::string Controlador::crear_nueva_sala(const std::string& nombre_sala) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+
+    json_object_object_add(objeto, "type", json_object_new_string("NEW_ROOM"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje para invitar usuarios a una sala
+std::string Controlador::crear_invitacion(const std::string& nombre_sala, const std::vector<std::string>& usuarios) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    struct json_object *lista_usuarios = json_object_new_array();
+
+    if (lista_usuarios == nullptr) {
+        json_object_put(objeto);
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("INVITE"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    // Agrego cada nombre al arreglo de usuarios
+    for (const std::string& usuario : usuarios) {
+        json_object_array_add(lista_usuarios, json_object_new_string(usuario.c_str()));
+    }
+    json_object_object_add(objeto, "usernames", lista_usuarios);
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje para solicitar los usuarios de una sala
+std::string Controlador::crear_usuarios_sala(const std::string& nombre_sala) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("ROOM_USERS"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje JSON para enviar texto a una sala
+std::string Controlador::crear_texto_sala(const std::string& nombre_sala, const std::string& texto) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("ROOM_TEXT"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    json_object_object_add(objeto, "text", json_object_new_string(texto.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje para solicitar unirse a una sala
+std::string Controlador::crear_unirse_sala(const std::string& nombre_sala) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+
+    json_object_object_add(objeto, "type", json_object_new_string("JOIN_ROOM"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Crea el mensaje JSON para abandonar una sala
+std::string Controlador::crear_salir_sala(const std::string& nombre_sala) {
+    struct json_object *objeto = json_object_new_object();
+
+    if (objeto == nullptr) {
+        return "";
+    }
+    json_object_object_add(objeto, "type", json_object_new_string("LEAVE_ROOM"));
+    json_object_object_add(objeto, "roomname", json_object_new_string(nombre_sala.c_str()));
+    const char *mensaje_json = json_object_to_json_string(objeto);
+    std::string mensaje(mensaje_json);
+    json_object_put(objeto);
+    return mensaje;
+}
+
+// Espera hasta que el hilo de lectura reciba USER_LIST
+void Controlador::esperar_lista_usuarios() {
+    std::unique_lock<std::mutex> bloqueo(mutex_usuarios);
+    condicion_usuarios.wait(bloqueo, [this] {return lista_usuarios_recibida;});
+}
+
+// Devuelve una copia de la lista de usuarios para que el hilo principal pueda consultarla
+std::vector<std::pair<std::string, std::string>> Controlador::obtener_usuarios() {
+    std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
+    return usuarios;
+}
+
 // Procesa un mensaje JSON recibido del servidor
 void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
@@ -28,13 +226,35 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         return;
     }
     json_object *tipo;
+
     if (!json_object_object_get_ex(objeto, "type", &tipo)) {
         fprintf(stderr, "Error: No se encontró el campo 'type' en el mensaje JSON\n");
         json_object_put(objeto);
         return;
     }
-
     printf("Tipo de mensaje recibido: %s\n", json_object_get_string(tipo));
+    // Procesa una invitación recibida para una sala
+    if (strcmp(json_object_get_string(tipo), "INVITATION") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) &&
+            json_object_object_get_ex(objeto, "roomname", &sala)) {
+
+            printf("Has recibido una invitación de %s para la sala %s.\n",
+                   json_object_get_string(usuario),
+                   json_object_get_string(sala));
+        }
+    }
+    // Procesa la notificación de que un usuario se unió a una sala
+    if (strcmp(json_object_get_string(tipo), "JOINED_ROOM") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala)) {
+            printf("El usuario %s se unió a la sala %s.\n", json_object_get_string(usuario), json_object_get_string(sala));
+        }
+    }
     
     // Procesar el mensaje según su tipo
     if (strcmp(json_object_get_string(tipo), "RESPONSE") == 0) {
@@ -49,6 +269,106 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
             printf("Operación: %s\n", json_object_get_string(operacion));
             printf("Resultado: %s\n", json_object_get_string(resultado));
             printf("Extra: %s\n", json_object_get_string(extra));
+        }
+    }
+    
+    // Procesar la lista de usuarios recibida del servidor
+    if (strcmp(json_object_get_string(tipo), "USER_LIST") == 0) {
+        json_object *lista_usuarios;
+
+        if (!json_object_object_get_ex(objeto, "users", &lista_usuarios) || !json_object_is_type(lista_usuarios, json_type_object)) {
+            fprintf(stderr, "Error: USER_LIST no contiene un objeto 'users'.\n");
+            json_object_put(objeto);
+            return;
+        }
+        std::lock_guard<std::mutex> bloqueo(mutex_usuarios);
+        usuarios.clear();
+        json_object_object_foreach(lista_usuarios, nombre, estado) {
+            usuarios.push_back({nombre, json_object_get_string(estado)});
+        }
+        // Indico que ya recibí la lista y despierto al hilo que la estaba esperando
+        lista_usuarios_recibida = true;
+        condicion_usuarios.notify_all();
+    }
+
+    // Procesar un mensaje privado recibido
+    if (strcmp(json_object_get_string(tipo), "TEXT_FROM") == 0) {
+        json_object *usuario;
+        json_object *texto;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) && 
+        json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("\nMensaje privado de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
+        }
+    }
+    // Procesa la lista de usuarios de una sala
+    if (strcmp(json_object_get_string(tipo), "ROOM_USER_LIST") == 0) {
+        json_object *sala;
+        json_object *lista_usuarios;
+
+        if (json_object_object_get_ex(objeto, "roomname", &sala) && 
+        json_object_object_get_ex(objeto, "users", &lista_usuarios) && json_object_is_type(lista_usuarios, json_type_object)) {
+            printf("Usuarios de la sala %s:\n", json_object_get_string(sala));
+            json_object_object_foreach(lista_usuarios, nombre, estado) {
+                printf("- %s [%s]\n", nombre, json_object_get_string(estado));
+            }
+        }
+    }
+    // Procesa un mensaje recibido desde una sala
+    if (strcmp(json_object_get_string(tipo), "ROOM_TEXT_FROM") == 0) {
+        json_object *usuario;
+        json_object *sala;
+        json_object *texto;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala) &&
+            json_object_object_get_ex(objeto, "text", &texto) && json_object_is_type(usuario, json_type_string) &&
+            json_object_is_type(sala, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("\nMensaje de %s en la sala %s: %s\n", json_object_get_string(usuario), json_object_get_string(sala), json_object_get_string(texto));
+        }
+    }
+    // Procesa la notificación de que un usuario salió de una sala
+    if (strcmp(json_object_get_string(tipo), "LEFT_ROOM") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala)) {
+            printf("El usuario %s salió de la sala %s.\n", json_object_get_string(usuario), json_object_get_string(sala));
+        }
+    }
+    // Informa que un usuario se desconectó
+    if (strcmp(json_object_get_string(tipo), "DISCONNECTED") == 0) {
+        json_object *usuario;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario)) {
+            printf("El usuario %s se desconectó.\n", json_object_get_string(usuario));
+        }
+    }
+    // Procesa un mensaje público recibido
+    if (strcmp(json_object_get_string(tipo), "PUBLIC_TEXT_FROM") == 0) {
+        json_object *usuario;
+        json_object *texto;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) &&
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("\nMensaje público de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
+        }
+    }
+    // Informa que un nuevo usuario se identificó
+    if (strcmp(json_object_get_string(tipo), "NEW_USER") == 0) {
+        json_object *usuario;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_is_type(usuario, json_type_string)) {
+            printf("Nuevo usuario conectado: %s\n", json_object_get_string(usuario));
+        }
+    }
+    // Informa que un usuario cambió su estado
+    if (strcmp(json_object_get_string(tipo), "NEW_STATUS") == 0) {
+        json_object *usuario;
+        json_object *estado;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "status", &estado) &&
+        json_object_is_type(usuario, json_type_string) && json_object_is_type(estado, json_type_string)) {
+            printf("El usuario %s ahora está %s.\n", json_object_get_string(usuario), json_object_get_string(estado));
         }
     }
     json_object_put(objeto); // Liberar memoria del objeto JSON

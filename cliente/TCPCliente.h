@@ -25,6 +25,7 @@ class TCPCliente {
         ~TCPCliente();
         bool conectar();
         bool enviar_mensaje(const std::string& mensaje);
+        bool esta_activo() const;
         void establecer_manejador(std::function<void(const std::string&)> manejador);
 };
 #endif
