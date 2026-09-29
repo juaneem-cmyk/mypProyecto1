@@ -1,5 +1,6 @@
 #include <json-c/json.h>
 #include <cstring>
+#include <cstdio>
 #include <Controlador.h>
 
 // Constructor de mensaje de identificación en formato JSON para enviar al servidor
@@ -217,66 +218,80 @@ std::vector<std::pair<std::string, std::string>> Controlador::obtener_usuarios()
     return usuarios;
 }
 
-// Procesa un mensaje JSON recibido del servidor
+// Procesa los mensajes recibidos del servidor
 void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
 
     if (objeto == nullptr) {
-        fprintf(stderr, "Error al procesar el mensaje JSON \n");
+        fprintf(stderr, "Error al procesar el mensaje.\n");
         return;
     }
     json_object *tipo;
 
-    if (!json_object_object_get_ex(objeto, "type", &tipo)) {
-        fprintf(stderr, "Error: No se encontró el campo 'type' en el mensaje JSON\n");
+    if (!json_object_object_get_ex(objeto, "type", &tipo) || !json_object_is_type(tipo, json_type_string)) {
+        fprintf(stderr, "Error: mensaje sin un tipo válido.\n");
         json_object_put(objeto);
         return;
     }
-    printf("Tipo de mensaje recibido: %s\n", json_object_get_string(tipo));
-    // Procesa una invitación recibida para una sala
-    if (strcmp(json_object_get_string(tipo), "INVITATION") == 0) {
-        json_object *usuario;
-        json_object *sala;
+    const char *tipo_texto = json_object_get_string(tipo);
 
-        if (json_object_object_get_ex(objeto, "username", &usuario) &&
-            json_object_object_get_ex(objeto, "roomname", &sala)) {
-
-            printf("Has recibido una invitación de %s para la sala %s.\n",
-                   json_object_get_string(usuario),
-                   json_object_get_string(sala));
-        }
-    }
-    // Procesa la notificación de que un usuario se unió a una sala
-    if (strcmp(json_object_get_string(tipo), "JOINED_ROOM") == 0) {
-        json_object *usuario;
-        json_object *sala;
-
-        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala)) {
-            printf("El usuario %s se unió a la sala %s.\n", json_object_get_string(usuario), json_object_get_string(sala));
-        }
-    }
-    
-    // Procesar el mensaje según su tipo
-    if (strcmp(json_object_get_string(tipo), "RESPONSE") == 0) {
+    // Procesa las respuestas del servidor
+    if (strcmp(tipo_texto, "RESPONSE") == 0) {
         json_object *operacion;
         json_object *resultado;
         json_object *extra;
-        
-        if (json_object_object_get_ex(objeto, "operation", &operacion) &&
-        json_object_object_get_ex(objeto, "result", &resultado) &&
-        json_object_object_get_ex(objeto, "extra", &extra)) {
-            
-            printf("Operación: %s\n", json_object_get_string(operacion));
-            printf("Resultado: %s\n", json_object_get_string(resultado));
-            printf("Extra: %s\n", json_object_get_string(extra));
+        const char *texto_operacion = "";
+        const char *texto_resultado = "";
+        const char *texto_extra = "";
+
+        if (json_object_object_get_ex(objeto, "operation", &operacion) && json_object_is_type(operacion, json_type_string)) {
+            texto_operacion = json_object_get_string(operacion);
         }
+
+        if (json_object_object_get_ex(objeto, "result", &resultado) && json_object_is_type(resultado, json_type_string)) {
+            texto_resultado = json_object_get_string(resultado);
+        }
+
+        if (json_object_object_get_ex(objeto, "extra", &extra) && json_object_is_type(extra, json_type_string)) {
+            texto_extra = json_object_get_string(extra);
+        }
+        mostrar_respuesta(texto_operacion, texto_resultado, texto_extra);
+        json_object_put(objeto);
+        return;
     }
-    
-    // Procesar la lista de usuarios recibida del servidor
-    if (strcmp(json_object_get_string(tipo), "USER_LIST") == 0) {
+
+    // Procesa una invitación recibida para una sala
+    if (strcmp(tipo_texto, "INVITATION") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala) &&
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(sala, json_type_string)) {
+            printf("Has recibido una invitación de %s para la sala \"%s\".\n", json_object_get_string(usuario), json_object_get_string(sala));
+        }
+        json_object_put(objeto);
+        return;
+    }
+
+    // Informa que un usuario se unió a una sala
+    if (strcmp(tipo_texto, "JOINED_ROOM") == 0) {
+        json_object *usuario;
+        json_object *sala;
+
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala) &&
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(sala, json_type_string)) {
+            printf("%s se unió a la sala \"%s\".\n", json_object_get_string(usuario), json_object_get_string(sala));
+        }
+        json_object_put(objeto);
+        return;
+    }
+
+    // Procesa la lista de usuarios recibida del servidor
+    if (strcmp(tipo_texto, "USER_LIST") == 0) {
         json_object *lista_usuarios;
 
-        if (!json_object_object_get_ex(objeto, "users", &lista_usuarios) || !json_object_is_type(lista_usuarios, json_type_object)) {
+        if (!json_object_object_get_ex(objeto, "users", &lista_usuarios) ||
+            !json_object_is_type(lista_usuarios, json_type_object)) {
             fprintf(stderr, "Error: USER_LIST no contiene un objeto 'users'.\n");
             json_object_put(objeto);
             return;
@@ -286,36 +301,43 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         json_object_object_foreach(lista_usuarios, nombre, estado) {
             usuarios.push_back({nombre, json_object_get_string(estado)});
         }
-        // Indico que ya recibí la lista y despierto al hilo que la estaba esperando
         lista_usuarios_recibida = true;
         condicion_usuarios.notify_all();
+        json_object_put(objeto);
+        return;
     }
 
-    // Procesar un mensaje privado recibido
-    if (strcmp(json_object_get_string(tipo), "TEXT_FROM") == 0) {
+    // Procesa un mensaje privado recibido
+    if (strcmp(tipo_texto, "TEXT_FROM") == 0) {
         json_object *usuario;
         json_object *texto;
 
-        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) && 
-        json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
-            printf("\nMensaje privado de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) &&
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
+            printf("%s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
         }
+        json_object_put(objeto);
+        return;
     }
+
     // Procesa la lista de usuarios de una sala
-    if (strcmp(json_object_get_string(tipo), "ROOM_USER_LIST") == 0) {
+    if (strcmp(tipo_texto, "ROOM_USER_LIST") == 0) {
         json_object *sala;
         json_object *lista_usuarios;
 
-        if (json_object_object_get_ex(objeto, "roomname", &sala) && 
-        json_object_object_get_ex(objeto, "users", &lista_usuarios) && json_object_is_type(lista_usuarios, json_type_object)) {
-            printf("Usuarios de la sala %s:\n", json_object_get_string(sala));
+        if (json_object_object_get_ex(objeto, "roomname", &sala) && json_object_object_get_ex(objeto, "users", &lista_usuarios) &&
+            json_object_is_type(sala, json_type_string) && json_object_is_type(lista_usuarios, json_type_object)) {
+            printf("Usuarios de la sala \"%s\":\n", json_object_get_string(sala));
             json_object_object_foreach(lista_usuarios, nombre, estado) {
-                printf("- %s [%s]\n", nombre, json_object_get_string(estado));
+                printf("  - %s [%s]\n", nombre, json_object_get_string(estado));
             }
         }
+        json_object_put(objeto);
+        return;
     }
+
     // Procesa un mensaje recibido desde una sala
-    if (strcmp(json_object_get_string(tipo), "ROOM_TEXT_FROM") == 0) {
+    if (strcmp(tipo_texto, "ROOM_TEXT_FROM") == 0) {
         json_object *usuario;
         json_object *sala;
         json_object *texto;
@@ -323,53 +345,81 @@ void Controlador::procesar_mensaje(const std::string& mensaje) {
         if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala) &&
             json_object_object_get_ex(objeto, "text", &texto) && json_object_is_type(usuario, json_type_string) &&
             json_object_is_type(sala, json_type_string) && json_object_is_type(texto, json_type_string)) {
-            printf("\nMensaje de %s en la sala %s: %s\n", json_object_get_string(usuario), json_object_get_string(sala), json_object_get_string(texto));
+            printf("[%s] %s: %s\n", json_object_get_string(sala), json_object_get_string(usuario), json_object_get_string(texto));
         }
+        json_object_put(objeto);
+        return;
     }
-    // Procesa la notificación de que un usuario salió de una sala
-    if (strcmp(json_object_get_string(tipo), "LEFT_ROOM") == 0) {
+
+    // Informa que un usuario salió de una sala
+    if (strcmp(tipo_texto, "LEFT_ROOM") == 0) {
         json_object *usuario;
         json_object *sala;
 
-        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala)) {
-            printf("El usuario %s salió de la sala %s.\n", json_object_get_string(usuario), json_object_get_string(sala));
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "roomname", &sala) &&
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(sala, json_type_string)) {
+            printf("%s salió de la sala \"%s\".\n", json_object_get_string(usuario), json_object_get_string(sala));
         }
+        json_object_put(objeto);
+        return;
     }
+
     // Informa que un usuario se desconectó
-    if (strcmp(json_object_get_string(tipo), "DISCONNECTED") == 0) {
+    if (strcmp(tipo_texto, "DISCONNECTED") == 0) {
         json_object *usuario;
 
-        if (json_object_object_get_ex(objeto, "username", &usuario)) {
-            printf("El usuario %s se desconectó.\n", json_object_get_string(usuario));
+        if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_is_type(usuario, json_type_string)) {
+            printf("%s se desconectó del chat.\n", json_object_get_string(usuario));
         }
+        json_object_put(objeto);
+        return;
     }
+
     // Procesa un mensaje público recibido
-    if (strcmp(json_object_get_string(tipo), "PUBLIC_TEXT_FROM") == 0) {
+    if (strcmp(tipo_texto, "PUBLIC_TEXT_FROM") == 0) {
         json_object *usuario;
         json_object *texto;
 
         if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "text", &texto) &&
             json_object_is_type(usuario, json_type_string) && json_object_is_type(texto, json_type_string)) {
-            printf("\nMensaje público de %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
+            printf("[Público] %s: %s\n", json_object_get_string(usuario), json_object_get_string(texto));
         }
+        json_object_put(objeto);
+        return;
     }
+
     // Informa que un nuevo usuario se identificó
-    if (strcmp(json_object_get_string(tipo), "NEW_USER") == 0) {
+    if (strcmp(tipo_texto, "NEW_USER") == 0) {
         json_object *usuario;
 
         if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_is_type(usuario, json_type_string)) {
-            printf("Nuevo usuario conectado: %s\n", json_object_get_string(usuario));
+            printf("%s se ha conectado al chat.\n", json_object_get_string(usuario));
         }
+        json_object_put(objeto);
+        return;
     }
+
     // Informa que un usuario cambió su estado
-    if (strcmp(json_object_get_string(tipo), "NEW_STATUS") == 0) {
+    if (strcmp(tipo_texto, "NEW_STATUS") == 0) {
         json_object *usuario;
         json_object *estado;
 
         if (json_object_object_get_ex(objeto, "username", &usuario) && json_object_object_get_ex(objeto, "status", &estado) &&
-        json_object_is_type(usuario, json_type_string) && json_object_is_type(estado, json_type_string)) {
-            printf("El usuario %s ahora está %s.\n", json_object_get_string(usuario), json_object_get_string(estado));
+            json_object_is_type(usuario, json_type_string) && json_object_is_type(estado, json_type_string)) {
+            const char *estado_texto = json_object_get_string(estado);
+            const char *estado_amigable = estado_texto;
+
+            if (strcmp(estado_texto, "ACTIVE") == 0) {
+                estado_amigable = "activo";
+            } else if (strcmp(estado_texto, "AWAY") == 0) {
+                estado_amigable = "ausente";
+            } else if (strcmp(estado_texto, "BUSY") == 0) {
+                estado_amigable = "ocupado";
+            }
+            printf("%s ahora está %s.\n", json_object_get_string(usuario), estado_amigable);
         }
+        json_object_put(objeto);
+        return;
     }
-    json_object_put(objeto); // Liberar memoria del objeto JSON
+    json_object_put(objeto);
 }
