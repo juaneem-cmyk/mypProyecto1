@@ -258,14 +258,38 @@ patrón Command implementado en comandos.c.
 
 
 \section{Implementación del cliente}
-
 \subsection{Programa principal}
+El punto de entrada main.cpp crea un TCPCliente apuntando a la dirección IP del servidor y el puerto 1234, 
+se conecta al servidor y envía el mensaje IDENTIFY con el nombre que el usuario escribe por consola. A partir
+de ahí entra en un ciclo que lee comandos de texto desde la entrada estándar
+USERS, NEW\_ROOM, INVITE, JOIN\_ROOM, ROOM\_USERS, ROOM\_TEXT, LEAVE\_ROOM,
+STATUS, TEXT, PUBLIC\_TEXT y DISCONNECT;
+solicitando los datos adicionales que cada operación necesita: nombre de
+sala, destinatario, texto, etc. Validando del lado del cliente los mismos
+límites que exige el protocolo antes de enviar el mensaje.
 
 \subsection{Controlador}
-
-\subsection{Comunicación TCP}
+La clase Controlador concentra la construcción y la interpretación de los mensajes JSON del protocolo usando json-c,
+separando esa lógica de la entrada/salida por consola de main.cpp y de la comunicación por socket de
+TCPCliente. Ofrece un método crear\_* por cada operación que
+el cliente puede solicitar, y un único método procesar\_mensaje()
+que reconoce el campo "type" de cada mensaje entrante y reacciona en 
+consecuencia.\\
+Como los mensajes del servidor llegan en un hilo de lectura aparte
+Controlador sincroniza el acceso a la lista de usuarios con un 
+std::mutex y usa una std::condition\_variable esperar\_lista\_usuarios 
+para que el hilo principal pueda bloquearse hasta que el hilo de lectura 
+reciba el USER\_LIST correspondiente a una solicitud de USERS.
 
 \subsection{Recepción de mensajes}
+leer\_mensajes() corre en su propio hilo y aplica del lado del
+cliente la misma estrategia de buffering por línea que usa el servidor: cada
+llamada a recv() agrega los bytes recibidos a un std::string interno, 
+y mientras haya un '\textbackslash n'
+en el buffer se extrae ese mensaje completo, se descarta si quedó vacío, 
+y se registra con establecer\_manejador(). Un mensaje sin salto de línea 
+que exceda el tamaño máximo permitido, o que recv() devuelva 0 o un error, 
+marcan al cliente como inactivo y terminan el hilo de lectura.
 
 \section{Refactorización y patrones de diseño}
 

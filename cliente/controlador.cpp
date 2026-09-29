@@ -273,6 +273,63 @@ static void mostrar_respuesta(const char *operacion, const char *resultado, cons
         return;
     }
 
+    if (strcmp(operacion, "JOIN_ROOM") == 0) {
+        if (strcmp(resultado, "SUCCESS") == 0) {
+            printf("Te has unido a la sala \"%s\".\n", extra);
+        } else if (strcmp(resultado, "NO_SUCH_ROOM") == 0) {
+            printf("La sala \"%s\" no existe.\n", extra);
+        } else if (strcmp(resultado, "NOT_INVITED") == 0) {
+            printf("No tienes una invitación para la sala \"%s\".\n", extra);
+        } else {
+            printf("No fue posible unirte a la sala.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "ROOM_USERS") == 0) {
+        if (strcmp(resultado, "NO_SUCH_ROOM") == 0) {
+            printf("La sala \"%s\" no existe.\n", extra);
+        } else if (strcmp(resultado, "NOT_JOINED") == 0) {
+            printf("No estás dentro de la sala \"%s\".\n", extra);
+        } else {
+            printf("No fue posible consultar los usuarios de la sala.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "ROOM_TEXT") == 0) {
+        if (strcmp(resultado, "NO_SUCH_ROOM") == 0) {
+            printf("La sala \"%s\" no existe.\n", extra);
+        } else if (strcmp(resultado, "NOT_JOINED") == 0) {
+            printf("No estás dentro de la sala \"%s\".\n", extra);
+        } else {
+            printf("No fue posible enviar el mensaje a la sala.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "LEAVE_ROOM") == 0) {
+        if (strcmp(resultado, "NO_SUCH_ROOM") == 0) {
+            printf("La sala \"%s\" no existe.\n", extra);
+        } else if (strcmp(resultado, "NOT_JOINED") == 0) {
+            printf("No estás dentro de la sala \"%s\".\n", extra);
+        } else {
+            printf("No fue posible salir de la sala.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "INVALID") == 0) {
+        if (strcmp(resultado, "NOT_IDENTIFIED") == 0) {
+            printf("Debes identificarte antes de realizar esa acción.\n");
+        } else {
+            printf("El mensaje enviado no es válido.\n");
+        }
+        return;
+    }
+    printf("El servidor respondió con un resultado no reconocido.\n");
+}
+
 // Procesa los mensajes recibidos del servidor
 void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
