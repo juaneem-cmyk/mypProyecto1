@@ -218,6 +218,61 @@ std::vector<std::pair<std::string, std::string>> Controlador::obtener_usuarios()
     return usuarios;
 }
 
+// Convierte las respuestas del protocolo en mensajes para el usuario
+static void mostrar_respuesta(const char *operacion, const char *resultado, const char *extra) {
+    if (strcmp(operacion, "IDENTIFY") == 0) {
+        if (strcmp(resultado, "SUCCESS") == 0) {
+            printf("¡Bienvenido, %s! Te has conectado al chat.\n", extra);
+        } else if (strcmp(resultado, "USER_ALREADY_EXISTS") == 0) {
+            printf("El usuario \"%s\" ya está conectado.\n", extra);
+        } else {
+            printf("No fue posible identificar al usuario.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "STATUS") == 0) {
+        if (strcmp(resultado, "SUCCESS") == 0) {
+            printf("Tu estado se actualizó correctamente.\n");
+        } else {
+            printf("No fue posible actualizar tu estado.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "TEXT") == 0) {
+        if (strcmp(resultado, "NO_SUCH_USER") == 0) {
+            printf("El usuario \"%s\" no existe.\n", extra);
+        } else {
+            printf("No fue posible enviar el mensaje.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "NEW_ROOM") == 0) {
+        if (strcmp(resultado, "SUCCESS") == 0) {
+            printf("La sala \"%s\" fue creada correctamente.\n", extra);
+        } else if (strcmp(resultado, "ROOM_ALREADY_EXISTS") == 0) {
+            printf("La sala \"%s\" ya existe.\n", extra);
+        } else {
+            printf("No fue posible crear la sala.\n");
+        }
+        return;
+    }
+
+    if (strcmp(operacion, "INVITE") == 0) {
+        if (strcmp(resultado, "NO_SUCH_ROOM") == 0) {
+            printf("La sala \"%s\" no existe.\n", extra);
+        } else if (strcmp(resultado, "NO_SUCH_USER") == 0) {
+            printf("El usuario \"%s\" no existe.\n", extra);
+        } else if (strcmp(resultado, "NOT_MEMBER") == 0) {
+            printf("No perteneces a esa sala y no puedes invitar usuarios.\n");
+        } else {
+            printf("No fue posible enviar la invitación.\n");
+        }
+        return;
+    }
+
 // Procesa los mensajes recibidos del servidor
 void Controlador::procesar_mensaje(const std::string& mensaje) {
     json_object *objeto = json_tokener_parse(mensaje.c_str());
