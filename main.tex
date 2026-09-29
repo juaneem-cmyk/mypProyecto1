@@ -334,18 +334,100 @@ se verificó contra pruebas del protocolo para no alterar el comportamiento ya i
 \subsection{Diagrama de secuencia}
 
 \section{Problemas encontrados y soluciones}
-
 \subsection{Problema 1}
+El primer gran problema fue que no sabía utilizar GitHub y cada vez 
+que hacía commits me pedía mi usuario y contraseña.
 
 \subsubsection{Solución}
+Afortunadamente Miriam mandó al telegram un tutorial para solucionar esto 
+y me permitió hacer commits de una forma más eficiente.
 
 \subsection{Problema 2}
+Escoger el lenguaje de programación C.\\
+En algún punto sentía que por más código que escribía no estaba haciendo
+realmente nada y me sentía bastante frustrado porque era culpa del 
+lenguaje de programación que escogí.
 
 \subsubsection{Solución}
+No hay solución, desde hoy soy hater \#1 de C y no pienso volver a 
+utilizarlo nunca más.
+
+\subsection{Problema 3}
+No sabía exactamente como comenzar y los tutoriales eran poco claros,
+además la parte del servidor era la que más dudas me generaba.
+
+\subsubsection{Solución}
+Tuve que buscar más referencias y empezar a combinar todas las cosas
+que veía que podían ser útiles para mi proyecto, ya que no todo el 
+código que utilizaba de referencia por parte de los repositorios me era
+útil.
+
+\subsection{Problema 4}
+Me costó bastante la parte de JSON.
+Era algo completamente nuevo y hubo muchas veces que no salían los mensajes
+como lo planeaba, esto no se llegó a reflejar tanto porque solo hacía commit
+cuando compilaba, pero creo que todo lo relacionado a JSON fue bastante 
+complicado al comienzo.
+
+\subsubsection{Solución}
+Prueba y error, además de tomar bastante de guía los ejemplos que venían
+en el protocolo.
+
+\subsection{Problema 5}
+Saturar mi main. 
+Creo que fue el problema más grande que llegué a tener, conforme iba
+avanzando veía que el main crecía más y aunque traté de separarlo no
+llegaba a encontrar el momento adecuado y sentía que si lo movía se iba
+a romper todo, así que prioricé terminar para después refactorizar.
+\subsubsection{Solución}
+Leí la página que compartió Miriam y utilicé la más conveniente en mi
+caso para así dejar el main más limpio.
+
+\subsection{Problema 6}
+Creaba copias de las listas de usuarios en lugar de utilizar la original
+con ayuda de los apuntadores.
+
+\subsubsection{Solución}
+Esta fue complicado pero no tanto, ya que Canek mencinó en la clase
+como debíamos abordar este problema y justamente acababa de implementarlo,
+entonces no me fue difícil cambiar todo antes de que fuera demasiado tarde.
 
 \section{Conclusiones}
+Al momento de comenzar creí que tendría tiempo suficiente para terminarlo, 
+sin embargo, me dí cuenta que era bastante más pesado de completar de lo
+que había imaginado. En un inicio tenía pensado hacer interfaz gráfica y
+hacer tests, pero conforme avanzaba me quede sin tiempo y tuve que
+desvelarme para terminar a tiempo con la fecha de entrega del viernes.\\
+Al final fue un proyecto en el que tuve que investigar muchas cosas y
+algunas otras copiarlas porque no sabía exactamente como implementarlas,
+sin embargo, hubo un punto en el que era más copiar y pegar de las cosas
+que ya tenía y eso facilito bastante a la hora de terminar con todo lo que 
+pedía el protocolo.\\ 
+Aprendí que a C no se le tiene miedo, se le tiene respeto.
 
 \section{Referencias}
+
+\begin{itemize}
+    \item Deitel, H. M., \& Deitel, P. J. (2004). \textit{Cómo programar en C, C++ y Java}. Prentice Hall.
+    \item Beej's Guide to Network Programming: \url{https://beej.us/guide/bgnet0/}
+    \item Building a Simple TCP Chat Application in C:\\
+     \url{https://medium.com/@trish07/building-a-simple-tcp-chat-application-in-c-a-step-by-step-tutorial-ed3845607d16}
+    \item Understanding TCP and Building our Own TCP Server in C:\\
+     \url{https://medium.com/@shivambhadani_/understanding-tcp-and-building-our-own-tcp-server-in-c-language-8de9d9de78ef}
+    \item IBM Documentation, \textit{Using poll() instead of select()}:\\
+     \url{https://www.ibm.com/docs/en/i/7.4.0?topic=designs-using-poll-instead-select}
+    \item AmineToualbi, \textit{TCPChat} (repositorio de referencia):\\
+     \url{https://github.com/AmineToualbi/TCPChat.git}
+    \item BaseMax, \textit{TCP-Chat-CPP} (repositorio de referencia): \\
+    \url{https://github.com/BaseMax/TCP-Chat-CPP.git}
+    \item JimmyWorks, \textit{TCP-Chat-App} (repositorio de referencia):\\ 
+    \url{https://github.com/JimmyWorks/TCP-Chat-App.git}
+    \item JSON, \textit{JSON.org}: \url{https://www.json.org/json-es.html}
+    \item Documentación oficial de json-c:\\
+     \url{https://github.com/json-c/json-c} (API: \url{https://json-c.github.io/json-c/})
+    \item Documentación oficial de GLib:\\
+     \url{https://docs.gtk.org/glib/}
+\end{itemize}
 
 \appendix
 
