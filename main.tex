@@ -292,10 +292,38 @@ que exceda el tamaño máximo permitido, o que recv() devuelva 0 o un error,
 marcan al cliente como inactivo y terminan el hilo de lectura.
 
 \section{Refactorización y patrones de diseño}
-
 \subsection{Factory}
+Originalmente, crear un cliente nuevo al aceptar una conexión implicaba
+reservar memoria para struct cliente y para su buffer de lectura,
+e inicializar cada uno de sus campos (socket, estado inicial, buffer,
+bandera de identificación) directamente dentro del bucle principal de
+main(). Esta lógica se extrajo a una función fábrica,
+crear\_cliente(socket, capacidad\_buffer), que
+devuelve un cliente completamente inicializado o NULL si falla
+alguna reservación de memoria, junto con su contraparte
+destruir\_cliente(). Con esto, deja de conocer los
+detalles internos de cómo se construye un cliente: solo le pide uno nuevo a
+la fábrica cada vez que accept() tiene éxito.
 
 \subsection{Command}
+El manejo de mensajes creció hasta convertirse en una larga cadena de
+if/else if sobre el campo "type" del mensaje, con las doce
+operaciones del protocolo resueltas dentro del mismo bucle de lectura de
+main(). Esto se refactorizó aplicando el patrón Command: cada
+operación se extrajo a su propia función con una firma común
+manejador\_comando, definida en comandos.h, y se agrupó el
+estado que estas funciones necesitan compartir en una sola
+struct contexto\_servidor, en vez de pasarlos como parámetros sueltos
+en cada llamada.
+
+Una tabla estática en comandos.c asocia cada cadena de tipo, 
+IDENTIFY, STATUS, etc, con su función manejadora
+correspondiente; manejar\_mensaje() extrae el tipo del mensaje,
+aplica la regla de que solo IDENTIFY es válido antes de que el
+cliente se identifique, y busca en la tabla la función a invocar. Agregar una operación nueva al protocolo implica escribir 
+una función más y añadir una fila a la tabla, en vez de otra rama en una cadena de 
+if/else cada vez más larga. Esta refactorización fue la más importante ya que me daba asco como se vea completa en el main.c, 
+se verificó contra pruebas del protocolo para no alterar el comportamiento ya implementado.
 
 \section{Diagramas UML}
 
